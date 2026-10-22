@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.next-test-*/
+.env
+.env.local
+.data/
+/data/
+*.tsbuildinfo
+agent.md
+mock.md
