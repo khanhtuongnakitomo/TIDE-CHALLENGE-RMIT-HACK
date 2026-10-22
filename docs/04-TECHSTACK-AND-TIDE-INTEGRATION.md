@@ -1,6 +1,6 @@
 # Technology stack and Tide integration
 
-Status: recommendations and documentation-backed capabilities, not installed or tested software. The project owner owns backend choices and integration. Agree changes to the [contract](06-API-AND-DATA-CONTRACT.md) before frontend implementation depends on them.
+Status: the local application scaffold and simulation are implemented. Docker runs TideCloak 0.14.41 on loopback, and the canonical `researchvault` realm plus `researchvault-web` client have been imported. `setUpTideRealm` failed with HTTP 500 after Midgard `FinalizeWallet` returned HTTP 503; the realm has a Tide IdP but licensing is unresolved, IGA remains off, and no admin invite or adapter export is available. Protected live payload/governance APIs remain fail-closed and unverified.
 
 ## Stack proposal
 
@@ -18,9 +18,13 @@ Status: recommendations and documentation-backed capabilities, not installed or 
 | Integration assistant | Tide MCP / Raziel | Serve current Tide playbooks to the coding agent | Development guidance, not runtime enforcement |
 | Motion graphics | Owner's chosen editor | Final narrated video | No specific editor or asset pipeline imposed |
 
-These are choices to adopt, not evidence that packages or Docker are present. Select compatible versions during implementation and pin the versions actually tested. Do not publish guessed install commands for this documentation-only repository.
+The runnable app currently uses Next.js App Router, TypeScript, pnpm, and Node's built-in SQLite support. It includes the official Tide SDK packages and a prepared browser-side shared-vault helper. The local TideCloak container and realm are present, but failed licensing means the app has no usable realm configuration yet. The app's `local-simulation` mode is synthetic server-side AES-GCM and app-enforced governance; it is not the Tide/Fabric security design described below. See the README for tested setup commands and exact mode boundaries.
 
 The official [Next.js SDK](https://docs.tide.org/Languages/NextJS/tidecloak-nextjs-intro) documents session integration, roles, API verification, and tagged encryption. The [Quickstart](https://docs.tide.org/get-started/Tidecloak%20Quickstart) describes a Docker-backed template and an interactive first-administrator enrolment step. Its Linux setup examples require Windows adaptation; local development still needs network access to Tide services.
+
+The challenge page at <https://tide.org/unlocked/#challenge> links to MCP and Quickstart material; it does not provide a ResearchVault-specific realm or hosted credentials. Local hosting was selected, the owner supplied the license email and accepted Tide's terms, and the full canonical template was imported. Bootstrap is incomplete because Midgard returned HTTP 503 during wallet finalization. No admin was invited or enrolled, and no adapter configuration was exported. Do not retry setup against this partial realm or treat its pending-license status as proof of a complete license; resume after the upstream failure is resolved.
+
+For DPoP URL binding, direct loopback development derives the origin from a strictly validated `Host` header and ignores `X-Forwarded-*`. A reverse-proxy deployment must configure the exact browser-facing `TIDE_PUBLIC_ORIGIN`; forwarded headers are not trusted by the app.
 
 ## What Tide contributes
 
@@ -32,7 +36,7 @@ The official [Next.js SDK](https://docs.tide.org/Languages/NextJS/tidecloak-next
 | Forseti | Optional resource/category/approver constraints beyond fixed roles | Chosen supported policy, trusted parameter binding, end-to-end test |
 | Raziel MCP | Agent follows integration guidance | Live read-only tool discovery and one successful guidance call |
 
-Tide's [QEA guide](https://docs.tide.org/Core-Concepts/iga-workflow) specifies `max(1, floor(0.7 × N))`: three administrators require two approvals, while two require one. Use three distinct administrators for the intended demo. Its master realm is outside QEA, so assess that administrative boundary rather than claiming universal protection.
+Use three distinct administrators as the intended demo target, but verify the actual signed `tide-realm-admin` policy and provider quorum behavior. The live commit gate uses the threshold encoded in that signed policy; `max(1, floor(0.7 × N))` is only a fallback/projection and does not establish the active threshold. A changed threshold requires a committed `REGEN_ADMIN_POLICY` change. Tide's master realm is outside QEA, so assess that administrative boundary rather than claiming universal protection.
 
 Tide's [encryption guide](https://docs.tide.org/Admin/e2ee) uses committed role/tag configuration and demonstrates `selfencrypt`/`selfdecrypt`. That example is not proof of cross-user sharing. Do not give sensitive decrypt roles to the default user group merely because the tutorial uses a broad default for illustration.
 
@@ -61,7 +65,7 @@ Suggested prompts for the integration agent:
 
 > Identify gaps in our research-vault design, including master-realm administration, browser compromise, data export, stale permissions, and any part still enforced only by application code.
 
-The pack describes Raziel as a guidance server. Agent code performs implementation; the MCP is not the vault backend. No MCP configuration is changed by this documentation task.
+The pack describes Raziel as a guidance server. Agent code performs implementation; the MCP is not the vault backend. The native Tide MCP is registered and available. A local `researchvault` realm was imported from the official full template, but licensing setup failed upstream during vendor key generation (Midgard returned HTTP 503); the realm is therefore not yet licensed or usable for live authentication and governance.
 
 ## Integration gates, in order
 
@@ -77,11 +81,11 @@ Treat G2 and G4 as stop/go decisions for the sharing architecture. Test the inte
 
 ## What is real and what can be simulated
 
-**Must be real for the intended claim:** authentication, protected read result, governed change correlation, sourced approval status, and current permissions after grant.
+**Must be real for the intended claim:** authentication, protected read result, governed change correlation, sourced approval status, and current permissions after grant. These remain unverified for this app; live protected routes fail closed.
 
-**Synthetic but functional:** participant records, transcripts, study descriptions, account personas, data volumes, and interview responses.
+**Implemented only in local simulation:** participant records, synthetic transcripts, study description, five persona selector entries, request/proposal/approval flow, and an application activity timeline. The local two-of-three quorum and AES-GCM payloads are functional demo behavior, not Tide evidence.
 
-**Allowed fixture preview during frontend development:** sample list data, empty states, notification panels, and recorded approval progress. Mark the whole workspace visibly as Fixture preview and never use it as proof of a live Tide operation.
+**Live integration still required:** real Tide sign-in, identity-to-persona mapping in a provisioned realm, signed policy configuration, cross-user decrypt of existing ciphertext, native governance change correlation, permission refresh, and admin policy-issuance threat review. The interface labels the current simulation and live mode does not silently fall back to it.
 
 **Optional:** fresh submissions, second-study scope, request notifications, and a custom approval UI. Each is independently labelled until integrated.
 

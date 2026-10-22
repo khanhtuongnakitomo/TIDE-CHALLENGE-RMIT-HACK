@@ -1,6 +1,6 @@
 # Acceptance criteria, open decisions, and sources
 
-Prepared 22 October 2026. This is an implementation handoff and verification specification, not a claim that the application checks below passed. See the [index](../README.md) for document responsibilities.
+Prepared 22 October 2026. This checklist remains the target for a real Tide-backed application. The local simulation passes only the application-level portions described in the README and HTTP tests; it does not satisfy claims requiring Tide identities, governance, or cross-user cryptography. See the [index](../README.md) for runnable setup and current boundaries.
 
 ## Sources of truth
 
@@ -13,6 +13,8 @@ Prepared 22 October 2026. This is an implementation handoff and verification spe
 The earlier local `mock.md` is historical input. The participant User UI is now confirmed, so the current demo uses five personas rather than its earlier four-account outline.
 
 ## Acceptance checklist
+
+**Current evidence boundary:** the executable local app covers ownership, study membership, denial before approval, scoped request persistence, distinct local approvers, session isolation, and identity-category denial. These are verified against the local simulator, not Tide. A local `researchvault` realm has been imported, but upstream licensing/vendor key generation is incomplete, so a licensed and usable real realm plus end-to-end runtime evidence are still required for A07–A11 and the Tide-backed portions of A13–A16. The UI, APIs, and activity timeline identify local simulation events as such.
 
 | ID | Check | Pass condition | Evidence to keep |
 |---|---|---|---|
@@ -56,24 +58,24 @@ Tests should protect consequential behavior: identity, ownership, grant scope, p
 | Decision | Recommended baseline | Who resolves / when |
 |---|---|---|
 | Final product name | ResearchVault working title | Owner before branding/video |
-| Framework and version pinning | Next.js/TypeScript, compatible Tide SDK | Owner before app scaffolding |
+| Framework and version pinning | Next.js App Router/TypeScript and pinned Tide SDK dependencies are implemented; versions are in `package.json` | Change only if a supported live integration requires it |
 | Actual sharing/key policy | Supported multi-user Tide path | Owner at G2, before integrated record UI |
-| Grant granularity | Study/category for P0 | Joint before API implementation |
+| Grant granularity | Study/category READ in the local simulation; real Tide mapping remains unverified | Joint at G2/G3 |
 | Fixed roles versus custom Forseti | Start supported fixed configuration; custom policy only when required | Owner at sharing/policy gate |
 | Fresh participant submission | Seeded owned record P0; live submission P1 | Owner after G2/G4 |
 | Consent controls | Explanation and existing scope only; no unverified live revocation | Owner before exposing consent actions |
 | Native console versus custom approvals | Native Tide console P0 | Joint before secondary UI implementation |
 | Session transport/refresh | Supported current SDK pattern | Owner before live adapter |
-| Database driver | Minimal SQLite access or familiar ORM | Owner before persistence |
+| Database driver | Node built-in SQLite for local persistence; no ORM | Revisit only if deployment needs another store |
 | Deployment and visibility | Local demo, private handoff repository | Owner before any public release |
 
 ## Build sequence and team handoff
 
-1. **Agree boundaries:** adopt/revise contract and grant scope. Frontend coworker begins public/fixture layouts.
-2. **Prove integration:** backend owner resolves shared crypto, governance, refresh, and identity separation.
-3. **Connect one vertical slice:** denied read → real grant → actual protected read. Avoid building every secondary page first.
-4. **Connect participant workspace:** show real own-record access; use live submission only if supported.
-5. **Verify and rehearse:** run relevant acceptance checks, capture evidence, then prepare owner-produced motion graphics.
+1. **Finish realm provisioning:** local Docker hosting and Tide terms are confirmed, and the `researchvault` realm/client are imported. Licensing is blocked by a Midgard `FinalizeWallet` HTTP 503; IGA, the admin invite, identity enrollment, and adapter export are still incomplete. Resume after the upstream licensing failure is resolved; do not treat the pending-license flag as proof of a usable realm.
+2. **Prove live sharing:** sign the supported browser policy, encrypt as participant, and verify cross-user decrypt for the existing ciphertext.
+3. **Prove live governance:** correlate the exact scope with Tide's pending/committed change and verify refresh, denial below quorum, and identity denial after grant.
+4. **Review authority boundaries:** assess policy issuance by realm admins and master-realm/QEA limitations before making resistance claims.
+5. **Rehearse only verified states:** keep simulation and live evidence visibly separate; motion graphics remain a separate owner task.
 
 This is a sequence, not a promise of a particular build duration. If the remaining event time is short, preserve the real integration and reduce screen breadth before adding optional features.
 
@@ -94,6 +96,6 @@ Official sources checked 22 October 2026. The challenge page was read in the bro
 | S9 | [Raziel MCP](https://docs.tide.org/ai-agent-pack) | MCP guidance package and integration playbooks; client-specific setup must match current host |
 | S10 | [Agent setup page](https://tide.org/agent-plugins) | Current advertised MCP endpoint and guidance purpose |
 
-## Handoff completion versus application completion
+## Application and handoff status
 
-This pack provides the proposal, architecture, feature map, technology plan, frontend specification, proposed contract, demo script, and acceptance criteria. Its verification is documentation consistency, source checking, and repository delivery. It does not install Tide, change agent settings, implement the backend/frontend, generate a video, establish a deployment, or prove runtime security. Those outcomes remain the owners' implementation work.
+The repository now includes a runnable local Next.js application, a SQLite-backed synthetic workflow, local persona UI, security-focused HTTP tests, and a fail-closed Tide integration boundary. This is not a live Tide deployment, cryptographic sharing proof, production service, or generated video. The README records exact local commands and current verification. The proposals and source-backed limits in this document continue to govern claims about unverified live behavior.

@@ -1,6 +1,6 @@
 # Proposed API and data contract
 
-Audience: project owner/backend implementer and frontend coworker(s). **None of these application endpoints exist yet.** Paths, models, codes, and states below are ResearchVault proposals, not Tide SDK APIs. The owner can revise them before implementation; both sides must agree any changed behavior.
+Audience: project owner/backend implementer and frontend coworker(s). This document began as a proposed contract. The local-simulation routes listed below are implemented and backed by SQLite; they are application behavior, not Tide provider APIs. Live `GET /api/me` validates a Tide JWT and DPoP proof when configured, while live payload and governance operations remain unavailable (503). Proposed endpoints that do not exist are marked separately.
 
 ## Identity and transport
 
@@ -51,23 +51,37 @@ Suggested access view:
 
 This view guides the UI. `mayAttemptDecrypt: true` means the current entitlement check permits an attempt, not that every subsequent crypto call is guaranteed to succeed.
 
-## Endpoint proposal
+## Endpoint map: implemented local routes
 
-| Method and path | Caller | Purpose and expected outcome |
+| Method and path | Caller | Current behavior |
 |---|---|---|
-| `GET /api/me` | Signed in | Verified actor, audiences, study memberships, effective capabilities |
-| `GET /api/studies` | Signed in | Only studies visible to actor |
-| `GET /api/studies/:studyId` | Participant/member | Safe study detail under ownership/membership checks |
-| `GET /api/records?studyId=...` | Signed in | Actor-filtered record summaries; participant sees own records |
-| `GET /api/records/:recordId` | Permitted owner/member | Authorised metadata/ciphertext envelope, or safe denial |
-| `POST /api/records` | Participant | P1 fresh encrypted contribution; accepts validated ciphertext, not raw transcript |
-| `GET /api/access-requests` | Signed in | Own requests, or reviewable requests under governance scope |
-| `POST /api/access-requests` | Research member | Create app request from allowed scope and reason; return REQUESTED |
-| `GET /api/access-requests/:requestId` | Requester/reviewer | Current app state and correlated governance reference |
-| `POST /api/access-requests/:requestId/propose` | Governed admin | Create/correlate exact Tide change; pending response; never self-activate |
-| `GET /api/governance/changes/:changeId` | Authorised reviewer | Sourced change detail and current quorum state |
-| `POST /api/governance/changes/:changeId/sync` | Authorised reviewer | Reconcile actual provider result; client cannot supply status |
-| `GET /api/activity?studyId=...` | Authorised reviewer | Sanitised events within actor's scope |
+| `GET /api/status` | Anyone on loopback in local mode | Mode/readiness only; live reports provider/auth readiness and explicitly false payload/governance readiness |
+| `POST /api/demo/login` | Local demo user | Select one of five synthetic personas; rotates the HTTP-only session |
+| `POST /api/logout` | Signed-in local persona | Clears the session |
+| `GET /api/me` | Signed in | Local persona in simulation; in live mode, verified Tide actor, mapped roles, and DPoP status |
+| `GET /api/studies` | Local participant or study reader | One safe synthetic study; unavailable to other personas |
+| `GET /api/records?studyId=...` | Local participant or member | Actor-filtered record summaries, access projection, and simulated grant state |
+| `GET /api/records/:recordId` | Local permitted owner/member | Opens the local server-encrypted payload or returns safe denial; never a live Tide decrypt |
+| `GET /api/access-requests` | Local requester or governance reviewer | Requester's records or reviewable requests, with local approval count/source |
+| `POST /api/access-requests` | Local research assistant | Validated study/category READ request; returns `REQUESTED` and supports idempotency key |
+| `POST /api/access-requests/:requestId/propose` | Local head researcher | Moves one request to `PENDING_GOVERNANCE`; creates only a labelled simulated change reference |
+| `POST /api/access-requests/:requestId/approve` | Local steward, ethics, or head persona | Distinct local approvals; second qualifying approval moves it to `COMMITTED` |
+| `GET /api/activity` | Local governance persona | Sanitised local application events only |
+
+All local simulator routes are loopback- and mode-gated. Live `POST /api/demo/login`, `POST /api/logout`, and local data/workflow routes fail closed. There is no implemented `POST /api/records`, study-detail route, request-detail route, Tide change lookup/sync route, or provider approval route. The approval endpoint above is exclusively for local simulation and does not replace the native Tide console.
+
+## Proposed, not implemented live endpoints
+
+The following paths describe future adapter capabilities only; do not call them from the current app or present them as implemented:
+
+| Proposed path | Intended live purpose |
+|---|---|
+| `POST /api/records` | Participant contribution using a verified Tide encryption flow |
+| `GET /api/access-requests/:requestId` | Request detail for requester/reviewer |
+| `GET /api/governance/changes/:changeId` | Provider-sourced change and quorum state |
+| `POST /api/governance/changes/:changeId/sync` | Reconcile provider commitment and effective entitlement |
+
+Tide provider endpoints remain vendor-owned and must be discovered from the selected realm/SDK; the app has not guessed them.
 
 The approval action itself uses the native Tide console for P0. Do not invent a ResearchVault approval endpoint before the owner validates the authenticated approval/signature flow. Participant activity visibility, if added, must be independently filtered.
 
@@ -149,16 +163,20 @@ Application states are REQUESTED, PENDING_GOVERNANCE, COMMITTED, ACTIVE, REJECTE
 
 A browser's report of decryption success can drive its own viewer and a labelled client-reported event, but must never create a server entitlement or be presented as independent cryptographic audit proof. Keep effective rights and transient viewer results separate in implementation.
 
+**Current implementation boundary:** local simulation stores these states in SQLite and changes a request to ACTIVE after a successful simulated read. That is test-app behavior only. In `RESEARCHVAULT_MODE=live`, the app returns an explicit unavailable response for protected payload and governance-change operations; it does not create a Tide change request, observe a provider quorum, or grant access from a client-reported result. Local AES-GCM uses a server-held demo key and does not implement the proposed client-side E2EE boundary below.
+
 ## Ciphertext handling
 
-The backend owner supplies a `cryptoAdapter` implementation using the supported Tide API:
+The intended live integration still needs a verified `cryptoAdapter` using supported Tide operations:
 
 ```text
 encryptContribution(plaintext, verifiedScope) → opaque ciphertext envelope
 decryptRecord(envelope, currentSession) → plaintext or explicit crypto/session/provider error
 ```
 
-These names are local adapter proposals. They are not Tide method names. Keep the provider's envelope intact; do not hand-roll key distribution or invent its wire format. The server validates allowed bindings and stores ciphertext without receiving transcript plaintext under the proposed E2EE boundary.
+These names are local adapter proposals. They are not Tide method names. A browser-only wrapper around the official `RelationshipAttestation:1` sample helpers is prepared in `src/lib/tide/shared-vault.ts`, but it has not been run against a ResearchVault realm and is not wired to live record storage or governance. Keep the provider's envelope intact; do not hand-roll key distribution or invent its wire format. The server validates allowed bindings and stores ciphertext without receiving transcript plaintext under the proposed E2EE boundary.
+
+The policy-signing operation is performed by a realm admin through the supported browser enclave flow. It is separate from the local app's two-of-three approval simulation. Whether a realm admin can issue an alternate policy for an existing decryptor remains an open threat-model question; the local quorum does not establish resistance to that path.
 
 The viewer must distinguish backend denial from a failed crypto operation. A UI fixture can populate either state but is never proof of enforcement. Record-view events cannot imply a complete Fabric audit unless a verified source supports that claim.
 
