@@ -1,0 +1,1000 @@
+/*
+ * ResearchVault design tokens — "Volcanic Ember & Neon Plasma" (Caldera Signature).
+ * Every colour, gradient, font, radius, spacing and motion value used by the
+ * app is defined here. Components consume the semantic aliases below (canvas,
+ * ink, accent, tier-*), never the raw palette, so restyling happens here only.
+ */
+
+:root {
+  /* Canvas and structural surfaces */
+  --bg-obsidian-canvas: #08090D;
+  --surface-carbon-card: #10131C;
+  --surface-card-gradient: linear-gradient(145deg, #161A26 0%, #0C0E15 100%);
+  --border-card-subtle: #1F2433;
+  --border-dotted-tech: #30374C;
+
+  /* Caldera signature accents */
+  --color-caldera-ember: #fc5000;
+  --color-neon-ember: #FF6600;
+  --color-plasma-violet: #524ae9;
+  --color-neon-sulfur: #F5F28E;
+
+  /* Functional gradients */
+  --gradient-ember-action: linear-gradient(90deg, #fc5000 0%, #FF7700 100%);
+  --gradient-caldera-halftone: linear-gradient(135deg, #524ae9 0%, #fc5000 100%);
+  --gradient-ember-glow: linear-gradient(90deg, #fc5000 0%, #FFA040 100%);
+
+  /* Typography */
+  --text-pure: #F7F6F2;
+  --text-muted: #8E95A5;
+  --text-dark-contrast: #070607;
+
+  /* Supporting Caldera values used by tiers, CTAs and glows */
+  --color-ember-flare: #FF7700; /* L4 QEA quorum indicator */
+  --color-carbon-raised: #1A1F2C; /* quiet dark CTA */
+  --color-carbon-hover: #161A26;
+  --color-pure-white: #FFFFFF;
+  --gradient-ember-text: linear-gradient(90deg, #fc5000 0%, #FF6600 50%, #FFA040 100%);
+  --glow-ember-text: drop-shadow(0 0 24px rgb(252 80 0 / 0.35));
+  --glow-ember-action: drop-shadow(0 0 14px rgb(252 80 0 / 0.45));
+}
+
+@theme static {
+  /* ---- Palette (resolves to the Caldera variables above) ------------ */
+  --color-abyssal: var(--bg-obsidian-canvas); /* page canvas */
+  --color-vault-carbon: var(--surface-carbon-card); /* inset panels, inputs */
+  --color-quantum-violet: var(--color-plasma-violet); /* highly restricted tier, halftone field */
+  --color-breach-crimson: #ff2d55; /* errors and provider failures, distinct from brand ember */
+  --color-neon-lime: #b8ff01; /* granted / unlocked state (semantic, not brand) */
+  --color-titanium: var(--text-pure); /* primary text */
+  --color-slate-muted: var(--text-muted); /* secondary text, outlines */
+  --color-seam: var(--border-card-subtle); /* subtle solid border */
+  --color-seam-technical: var(--border-dotted-tech); /* dotted technical divider */
+
+  --gradient-card: var(--surface-card-gradient);
+  --gradient-elevated: linear-gradient(135deg, #1A1F2C 0%, #0C0E15 100%);
+  --gradient-breach: var(--gradient-ember-action);
+  --gradient-quantum: var(--gradient-caldera-halftone);
+  --gradient-highlight: var(--gradient-ember-text);
+
+  /* ---- Typography --------------------------------------------------- */
+  --font-display: 'PP Neue Corp Compact', 'Bebas Neue', 'Anton', sans-serif;
+  --font-body: 'DM Sans', 'Inter', 'Manrope', sans-serif;
+  --font-caption: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --weight-display: 400;
+  --weight-body: 500;
+  --weight-caption: 400;
+
+  --tracking-display: 0.02em;
+  --tracking-label: 0.06em;
+
+  --text-display: clamp(5rem, 14vw, 189px);
+  --text-display--line-height: 0.94;
+  --text-display-3xl: clamp(3.25rem, 7.4vw, 120px);
+  --text-display-3xl--line-height: 0.94;
+  --text-display-2xl: clamp(3.5rem, 6vw, 80px);
+  --text-display-2xl--line-height: 0.94;
+  --text-display-lg: clamp(2.25rem, 3.6vw, 48px);
+  --text-display-lg--line-height: 1;
+  --text-display-md: 32px;
+  --text-display-md--line-height: 1.05;
+  --text-display-sm: 26px;
+  --text-display-sm--line-height: 1.1;
+
+  --text-body-xl: clamp(1.25rem, 2vw, 30px);
+  --text-body-xl--line-height: 1.3;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 1.45;
+  --text-body: 16px;
+  --text-body--line-height: 1.55;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 1.2;
+  --text-micro: 12px;
+  --text-micro--line-height: 1.2;
+
+  /* ---- Radius (triple-radius system) -------------------------------- */
+  --radius-card: 40px; /* cards, panels, secondary buttons */
+  --radius-pill: 800px; /* primary CTAs, nav container, badges */
+  --radius-input: 100px; /* inputs */
+  --radius-inset: 24px; /* surfaces nested inside a card */
+
+  /* ---- Spacing ------------------------------------------------------ */
+  --spacing-card: 40px; /* card padding */
+  --spacing-section: 80px; /* section gap */
+  --spacing-element: 16px; /* element gap */
+  --spacing-3xl: 32px;
+  --spacing-4xl: 48px;
+  --spacing-btn-x: 26px;
+  --spacing-btn-y: 14px;
+  --spacing-input-x: 32px;
+  --spacing-input-y: 20px;
+  --spacing-dot: 10px; /* status dot diameter */
+
+  --container-page: 1280px;
+  --container-prose: 680px;
+  --container-auth: 520px; /* sign-in and registration card */
+  --container-nav: 1000px; /* floating navbar pill */
+
+  /* ---- Lines -------------------------------------------------------- */
+  --rule-width: 1.5px;
+  --hairline: 1px; /* solid seam between flat surfaces */
+  --focus-width: 2px;
+  --focus-offset: 3px;
+
+  /* ---- Motion ------------------------------------------------------- */
+  --ease-forge: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-slot: 300ms;
+  --duration-reveal: 700ms;
+  --duration-pulse: 1600ms;
+  --reveal-stagger: 15ms;
+  --duration-scroll-reveal: 600ms;
+  --reveal-shift: 30px;
+  --reveal-scale: 0.97;
+  --nav-float-scale: 0.985;
+
+  /* ---- Halftone matrix ---------------------------------------------- */
+  --halftone-dot: 1.5px;
+  --halftone-grid: 8px;
+  --halftone-opacity: 0.55;
+  --halftone-scrim: 0.72; /* veil behind overlay panels for readability */
+
+  /* Flat system: no shadows, no blur. */
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --blur-*: initial;
+}
+
+/* Semantic aliases — the only colour names components use. */
+@theme inline {
+  --color-canvas: var(--color-abyssal);
+  --color-inset: var(--color-vault-carbon);
+  --color-ink: var(--color-titanium);
+  --color-ink-muted: var(--color-slate-muted);
+  --color-ink-faint: var(--color-seam);
+  --color-rule: var(--color-seam-technical);
+  --color-outline: var(--color-slate-muted);
+  --color-accent: var(--color-caldera-ember);
+  --color-accent-bright: var(--color-neon-ember);
+  --color-accent-wash: color-mix(in oklab, var(--color-caldera-ember) 12%, transparent);
+  --color-on-accent: var(--text-dark-contrast);
+  --color-on-accent-display: var(--color-pure-white); /* large numerals on ember only (3:1 large-text) */
+  --color-highlight: var(--color-neon-sulfur);
+  --color-highlight-wash: color-mix(in oklab, var(--color-neon-sulfur) 12%, transparent);
+  --color-highlight-edge: color-mix(in oklab, var(--color-neon-sulfur) 40%, transparent);
+  --color-focus: var(--color-neon-sulfur);
+  --color-alert: var(--color-breach-crimson);
+  --color-alert-wash: color-mix(in oklab, var(--color-breach-crimson) 14%, transparent);
+  --color-granted: var(--color-neon-lime);
+  --color-quorum: var(--color-ember-flare);
+  --color-obsidian: var(--text-dark-contrast);
+  --color-raised: var(--color-carbon-raised);
+  --color-raised-hover: var(--color-carbon-hover);
+
+  /* Clearance tiers: shape (TierGlyph) + label carry meaning; colour reinforces. */
+  --color-tier-metadata: var(--color-slate-muted);
+  --color-tier-internal: var(--color-neon-sulfur);
+  --color-tier-restricted: var(--color-caldera-ember);
+  --color-tier-highly: var(--color-plasma-violet);
+  --color-tier-highly-ink: color-mix(in oklab, var(--color-quantum-violet) 55%, var(--color-titanium));
+
+  --font-sans: var(--font-body);
+
+  /* Spacing scale exposed to app utilities. */
+  --spacing-xs: var(--space-xs);
+  --spacing-sm: var(--space-sm);
+  --spacing-md: var(--space-md);
+  --spacing-lg: var(--space-lg);
+  --spacing-xl: var(--space-xl);
+  --spacing-2xl: var(--space-2xl);
+}
+
+/* Spacing scale (formerly supplied by the external kit). Dark-only theme. */
+:root {
+  color-scheme: dark;
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 8px;
+  --space-lg: 12px;
+  --space-xl: 16px;
+  --space-2xl: 24px;
+}
+
+@layer base {
+  html {
+    /* Keep anchor targets clear of the sticky navbar. */
+    scroll-padding-top: calc(var(--spacing-section) + var(--spacing-2xl));
+  }
+  html,
+  body {
+    font-family: var(--font-body);
+    font-weight: var(--weight-body);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+}
+
+/* Flat-surface guarantee: nothing in the product casts a shadow or blurs. */
+*,
+*::before,
+*::after {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* ---- Typography utilities ------------------------------------------- */
+@utility type-display {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
+  font-feature-settings: 'ss06', 'ss10';
+  text-transform: uppercase;
+}
+@utility type-body {
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+}
+@utility type-caption {
+  font-family: var(--font-caption);
+  font-weight: var(--weight-caption);
+  font-size: var(--text-micro);
+  line-height: var(--text-micro--line-height);
+}
+@utility type-id {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-caption);
+  font-size: var(--text-micro);
+  line-height: var(--text-micro--line-height);
+}
+@utility type-eyebrow {
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  font-size: var(--text-micro);
+  line-height: var(--text-micro--line-height);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* ---- Signature dotted rules ----------------------------------------- */
+@utility rule-dotted-t {
+  border-top: var(--rule-width) dotted var(--color-rule);
+}
+@utility rule-dotted-b {
+  border-bottom: var(--rule-width) dotted var(--color-rule);
+}
+@utility rule-dotted-l {
+  border-left: var(--rule-width) dotted var(--color-rule);
+}
+@utility rule-dotted-r {
+  border-right: var(--rule-width) dotted var(--color-rule);
+}
+@utility rule-dotted {
+  border: var(--rule-width) dotted var(--color-rule);
+}
+@utility rule-solid {
+  border: var(--rule-width) solid var(--color-rule);
+}
+@utility rule-none {
+  border: 0;
+}
+@utility divide-dotted-y {
+  & > * + * {
+    border-top: var(--rule-width) dotted var(--color-rule);
+  }
+}
+
+/* ---- Architectural surfaces ------------------------------------------
+ * Flat fills with a hairline seam so adjacent cards never merge into one
+ * block. No shadows, no blur, no translucency over content.
+ */
+@utility surface-card {
+  background-color: var(--color-inset);
+  background-image: var(--gradient-card);
+  border: var(--hairline) solid var(--color-ink-faint);
+  color: var(--color-ink);
+}
+@utility surface-elevated {
+  background-color: var(--color-inset);
+  background-image: var(--gradient-elevated);
+  border: var(--hairline) solid var(--color-rule);
+  color: var(--color-ink);
+}
+@utility surface-inset {
+  background-color: var(--color-inset);
+  border: var(--hairline) solid var(--color-ink-faint);
+  color: var(--color-ink);
+}
+@utility surface-canvas {
+  background-color: var(--color-canvas);
+  border: var(--hairline) solid var(--color-ink-faint);
+  color: var(--color-ink);
+}
+@utility surface-breach {
+  background-color: var(--color-alert);
+  background-image: var(--gradient-breach);
+  border: var(--hairline) solid transparent;
+  color: var(--color-on-accent);
+}
+@utility surface-quantum {
+  background-color: var(--color-quantum-violet);
+  border: var(--hairline) solid transparent;
+  color: var(--color-ink);
+}
+@utility surface-accent {
+  background-color: var(--color-accent);
+  border: var(--hairline) solid transparent;
+  color: var(--color-on-accent);
+}
+
+/* Gradient highlight inside display headings (e.g. "CONTROLLED ACCESS."). */
+@utility text-plasma {
+  background-image: var(--gradient-highlight);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: var(--glow-ember-text);
+}
+/* Neon Sulfur badge: metadata and prototype markers. */
+@utility badge-sulfur {
+  background-color: var(--color-highlight-wash);
+  border: var(--hairline) solid var(--color-highlight-edge);
+  color: var(--color-highlight);
+}
+/* Dark volcanic card with an Ember frame (research & governance entry). */
+@utility surface-frame {
+  background-color: var(--color-inset);
+  background-image: var(--gradient-card);
+  border: var(--hairline) solid color-mix(in oklab, var(--color-accent) 60%, transparent);
+  color: var(--color-pure-white);
+}
+
+/* ---- Halftone matrix ------------------------------------------------
+ * Caldera signature: Ember dot grid over the Plasma Violet → Ember field,
+ * clipped to its rounded card. Dots sit on a pointer-transparent layer and
+ * fade out toward the ember corner so they never fight the content.
+ * Reserved for the clearance showcase; other cards stay carbon.
+ */
+@utility halftone {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: var(--hairline) solid var(--color-rule);
+  color: var(--color-ink);
+  background-color: var(--color-quantum-violet);
+  background-image: linear-gradient(
+      160deg,
+      color-mix(in oklab, var(--color-canvas) 8%, transparent) 0%,
+      color-mix(in oklab, var(--color-canvas) 45%, transparent) 100%
+    ),
+    var(--gradient-quantum);
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    background-image: radial-gradient(var(--color-accent) var(--halftone-dot), transparent var(--halftone-dot));
+    background-size: var(--halftone-grid) var(--halftone-grid);
+    opacity: var(--halftone-opacity);
+    mask-image: linear-gradient(125deg, black 0%, black 30%, transparent 85%);
+  }
+}
+/* Readable panel laid over the halftone field. */
+@utility halftone-panel {
+  background-color: color-mix(in oklab, var(--color-canvas) calc(var(--halftone-scrim) * 100%), transparent);
+  border: var(--hairline) solid var(--color-rule);
+  color: var(--color-ink);
+  /* Restricted tier row carries a faint ember frame. */
+  &[data-tier='restricted'] {
+    border-color: color-mix(in oklab, var(--color-accent) 40%, transparent);
+  }
+  /* Governance rows (not data tiers) use the dotted flare technical border. */
+  &[data-kind='governance'] {
+    border: var(--rule-width) dotted var(--color-quorum);
+  }
+}
+
+/* ---- Slot-machine label (pill buttons) --------------------------------
+ * Both layers occupy one clipped grid cell. The second layer is decorative:
+ * aria-hidden in the markup, and visibility:hidden while idle so it never
+ * leaks into rendered text (innerText, copy, find-in-page). It becomes
+ * visible only while it is rolling into view.
+ */
+.rv-slot {
+  display: inline-grid;
+  overflow: hidden;
+  vertical-align: top;
+}
+.rv-slot > span {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  white-space: nowrap;
+  transition: transform var(--duration-slot) var(--ease-forge);
+}
+.rv-slot > span + span {
+  transform: translateY(100%);
+  visibility: hidden;
+  transition:
+    transform var(--duration-slot) var(--ease-forge),
+    visibility 0s linear var(--duration-slot);
+}
+:is(button, a, [data-slot-host]):is(:hover, :focus-visible) .rv-slot > span:first-child {
+  transform: translateY(-100%);
+}
+:is(button, a, [data-slot-host]):is(:hover, :focus-visible) .rv-slot > span + span {
+  transform: translateY(0);
+  visibility: visible;
+  transition:
+    transform var(--duration-slot) var(--ease-forge),
+    visibility 0s;
+}
+
+/* ---- Character reveal ------------------------------------------------ */
+/* inline-block (not flex) so rendered text stays continuous: no per-glyph
+ * line breaks in innerText / copy, and real spaces between words. */
+.rv-reveal-word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-block: 0.04em;
+  margin-block: -0.04em;
+}
+.rv-reveal-char {
+  display: inline-block;
+  transform: translateY(100%);
+  animation: rv-char-rise var(--duration-reveal) var(--ease-forge) forwards;
+  animation-delay: calc(var(--i, 0) * var(--reveal-stagger));
+}
+@keyframes rv-char-rise {
+  to {
+    transform: translateY(0);
+  }
+}
+
+.rv-fade-up {
+  animation: rv-fade-up var(--duration-reveal) var(--ease-forge) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+@keyframes rv-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes rv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.rv-spin {
+  animation: rv-spin 900ms linear infinite;
+}
+
+/* ---- Physical lift — interactive cards move instead of casting shadow -- */
+/* ---- Scroll reveal (ScrollRevealCard) -------------------------------
+ * Content is never removed from the accessibility tree; focus inside a
+ * not-yet-revealed block shows it immediately. */
+.rv-scroll-reveal {
+  opacity: 0;
+  transform: translateY(var(--reveal-shift)) scale(var(--reveal-scale));
+  transition: opacity var(--duration-scroll-reveal) var(--ease-forge), transform var(--duration-scroll-reveal) var(--ease-forge);
+  transition-delay: var(--reveal-delay, 0s);
+}
+.rv-scroll-reveal[data-revealed='true'],
+.rv-scroll-reveal:focus-within {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- Floating navbar -------------------------------------------------
+ * The header is sticky (keeps its flow space: no layout shift). Past 40px of
+ * scroll AppShell sets data-floating and the bar condenses into a centered
+ * carbon pill. Only this bar is allowed a backdrop blur. */
+.rv-nav__bar {
+  margin-inline: auto;
+  max-width: 100%;
+  transform-origin: top center;
+  transition: max-width var(--duration-slot) var(--ease-forge), transform var(--duration-slot) var(--ease-forge),
+    border-radius var(--duration-slot) var(--ease-forge), background-color var(--duration-slot) var(--ease-forge),
+    border-color var(--duration-slot) var(--ease-forge);
+}
+.rv-nav[data-floating='true'] .rv-nav__bar {
+  max-width: min(100%, var(--container-nav));
+  transform: scale(var(--nav-float-scale));
+  background-color: color-mix(in oklab, var(--color-inset) 95%, transparent);
+  background-image: none;
+  border-color: var(--color-ink-faint);
+  backdrop-filter: blur(var(--spacing-lg)) !important;
+}
+@media (width >= 80rem) {
+  .rv-nav[data-floating='true'] .rv-nav__bar {
+    border-radius: var(--radius-pill);
+  }
+}
+
+@utility lift {
+  transition: transform var(--duration-slot) var(--ease-forge);
+  &:hover,
+  &:focus-within {
+    transform: translateY(calc(var(--space-sm) * -1));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover,
+    &:focus-within {
+      transform: none;
+    }
+  }
+}
+
+/* ---- Live status dot (e.g. committed, awaiting refresh) -------------- */
+.rv-pulse {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: var(--spacing-dot);
+  height: var(--spacing-dot);
+  border-radius: var(--radius-pill);
+  background-color: currentColor;
+}
+.rv-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: currentColor;
+  animation: rv-pulse var(--duration-pulse) var(--ease-forge) infinite;
+}
+@keyframes rv-pulse {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-nav__bar,
+  .rv-scroll-reveal {
+    transition: none;
+  }
+  .rv-scroll-reveal,
+  .rv-nav[data-floating='true'] .rv-nav__bar {
+    opacity: 1;
+    transform: none;
+  }
+  .rv-reveal-char,
+  .rv-fade-up {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+  .rv-slot > span {
+    transition: none;
+  }
+  .rv-pulse::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/*
+ * Local kit skins (components/kit.tsx). Unlayered so they take precedence
+ * over utility classes; every value resolves to a token above.
+ */
+.rv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: var(--spacing-btn-y) var(--spacing-btn-x);
+  border-width: var(--rule-width);
+  border-style: solid;
+  border-color: transparent;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  font-size: var(--text-body);
+  line-height: 1.2;
+  gap: var(--space-md);
+  text-decoration: none;
+  transition: background-color var(--duration-slot) var(--ease-forge), color var(--duration-slot) var(--ease-forge),
+    border-color var(--duration-slot) var(--ease-forge), filter var(--duration-slot) var(--ease-forge);
+}
+.rv-btn:focus {
+  outline: none;
+}
+.rv-btn:focus-visible,
+.rv-icon-btn:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+.rv-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.rv-btn--sm {
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--text-body-sm);
+}
+.rv-btn--block {
+  width: 100%;
+}
+/* Ember gradient pill: the one primary action per region. */
+.rv-btn--primary,
+.rv-btn--primary:hover {
+  background-color: var(--color-accent);
+  background-image: var(--gradient-ember-action);
+  border-color: transparent;
+  color: var(--color-on-accent);
+}
+.rv-btn--primary:hover,
+.rv-btn--primary:focus-visible {
+  filter: var(--glow-ember-action);
+}
+/* Outlined secondary on any dark surface. */
+.rv-btn--secondary,
+.rv-btn--secondary:hover {
+  background-color: transparent;
+  border-color: var(--color-outline);
+  color: var(--color-ink);
+  border-radius: var(--radius-card);
+}
+.rv-btn--secondary:hover {
+  background-color: var(--color-ink-faint);
+}
+/* Titanium inverse pill: confirmations and decisive actions. */
+.rv-btn--ink,
+.rv-btn--ink:hover {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-on-accent);
+}
+.rv-btn--ghost,
+.rv-btn--ghost:hover {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--color-ink);
+}
+.rv-btn--ghost:hover {
+  background-color: var(--color-ink-faint);
+}
+/* Carbon pill with a technical seam: quiet alternative to primary. */
+.rv-btn--surface,
+.rv-btn--surface:hover {
+  background-color: var(--color-raised);
+  border-color: var(--color-rule);
+  color: var(--color-ink);
+}
+.rv-btn--surface:hover {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+/* Obsidian pill: actions on ember-framed surfaces. */
+.rv-btn--obsidian,
+.rv-btn--obsidian:hover {
+  background-color: var(--color-obsidian);
+  border-color: var(--color-obsidian);
+  color: var(--color-pure-white);
+}
+.rv-btn--obsidian:hover {
+  background-color: var(--color-raised-hover);
+  border-color: var(--color-accent);
+}
+/* Full-width, left-aligned row inside menus and popovers. */
+.rv-btn--row {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  border-radius: var(--radius-inset);
+  padding: var(--space-lg);
+}
+.rv-btn--row:hover {
+  background-color: var(--color-ink-faint);
+}
+.rv-btn--row:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.rv-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: var(--space-md);
+  border: var(--rule-width) solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--color-ink);
+  transition: background-color var(--duration-slot) var(--ease-forge);
+}
+.rv-icon-btn:hover {
+  background-color: var(--color-ink-faint);
+}
+
+/* ---- Fields ---------------------------------------------------------- */
+.rv-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.rv-field__label {
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  color: var(--color-ink);
+}
+.rv-field__hint {
+  font-family: var(--font-caption);
+  font-size: var(--text-micro);
+  line-height: var(--text-micro--line-height);
+  color: var(--color-ink-muted);
+}
+.rv-field__error {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  color: var(--color-ink);
+  padding-left: var(--space-lg);
+  border-left: var(--rule-width) solid var(--color-alert);
+}
+.rv-field__control {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-md);
+  background-color: var(--color-inset);
+  border: var(--rule-width) solid var(--color-outline);
+  border-radius: var(--radius-input);
+  padding: var(--space-lg) var(--space-2xl);
+  color: var(--color-ink);
+}
+.rv-field__control:has(:focus-visible) {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+.rv-field__control:has([aria-invalid='true']) {
+  border-color: var(--color-alert);
+}
+.rv-field__control > input,
+.rv-field__control > textarea,
+.rv-field__control > select {
+  min-width: 0;
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  font-size: var(--text-body);
+  line-height: 1.3;
+  color: var(--color-ink);
+}
+.rv-field__control > select {
+  appearance: none;
+  cursor: pointer;
+}
+.rv-field__control > select option {
+  background-color: var(--color-inset);
+  color: var(--color-ink);
+}
+.rv-field__control > svg {
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+.rv-field__control--select {
+  position: relative;
+}
+.rv-field__control--multiline {
+  border-radius: var(--radius-inset);
+  align-items: stretch;
+}
+.rv-field__control > textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+.rv-field__control input::placeholder,
+.rv-field__control textarea::placeholder {
+  color: var(--color-ink-muted);
+}
+.rv-field--compact .rv-field__control {
+  padding: var(--space-md) var(--space-xl);
+}
+.rv-field--compact .rv-field__control > select {
+  font-size: var(--text-body-sm);
+}
+
+/* ---- Modal (native dialog) ------------------------------------------- */
+.rv-dialog {
+  margin: auto;
+  max-height: calc(100dvh - 2 * var(--space-xl));
+  padding: 0;
+  overflow: auto;
+}
+.rv-dialog::backdrop {
+  background-color: color-mix(in oklab, var(--color-canvas) 82%, transparent);
+}
+.rv-modal {
+  border-radius: var(--radius-card);
+  background-color: var(--color-inset);
+  background-image: var(--gradient-elevated);
+  border: var(--hairline) solid var(--color-rule);
+  color: var(--color-ink);
+  width: min(640px, calc(100vw - 2 * var(--space-xl)));
+}
+.rv-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  padding: var(--spacing-3xl) var(--spacing-card) var(--space-xl);
+  border-bottom: var(--rule-width) dotted var(--color-rule);
+}
+.rv-modal__head h2 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
+  font-feature-settings: 'ss06', 'ss10';
+  text-transform: uppercase;
+  font-size: var(--text-display-md);
+  line-height: var(--text-display-md--line-height);
+  color: var(--color-ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rv-modal__body {
+  padding: var(--spacing-3xl) var(--spacing-card);
+}
+.rv-modal__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--spacing-card) var(--spacing-3xl);
+  border-top: var(--rule-width) dotted var(--color-rule);
+}
+@media (max-width: 639px) {
+  .rv-modal__head,
+  .rv-modal__body,
+  .rv-modal__foot {
+    padding-inline: var(--space-2xl);
+  }
+}
+
+/* ---- Tabs → pill tabs on a dotted rule ------------------------------- */
+.rv-tabs [role='tablist'] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  padding-bottom: var(--space-lg);
+  border-bottom: var(--rule-width) dotted var(--color-rule);
+}
+.rv-tabs [role='tab'] {
+  cursor: pointer;
+  padding: var(--space-md) var(--space-xl);
+  border: var(--rule-width) solid var(--color-outline);
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  color: var(--color-ink);
+  transition: background-color var(--duration-slot) var(--ease-forge), color var(--duration-slot) var(--ease-forge);
+}
+.rv-tabs [role='tab']:hover {
+  background-color: var(--color-ink-faint);
+}
+.rv-tabs [role='tab'][aria-selected='true'] {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+.rv-tabs [role='tab']:focus-visible,
+.rv-tabs [role='tabpanel']:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+.rv-tabs [role='tabpanel'] {
+  min-width: 0;
+  padding-top: var(--space-2xl);
+}
+
+/* ---- Radios → vertical pill selector ---------------------------------
+ * Selection shows as an ember fill plus the filled radio dot, so it never
+ * relies on colour alone. */
+.rv-radios {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.rv-radio {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-xl);
+  border: var(--rule-width) solid var(--color-outline);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  transition: background-color var(--duration-slot) var(--ease-forge), color var(--duration-slot) var(--ease-forge);
+}
+.rv-radio:hover {
+  background-color: var(--color-ink-faint);
+}
+.rv-radio:has(:checked) {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+.rv-radio:has(:focus-visible) {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+.rv-radio__input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.rv-radio__dot {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: var(--space-xl);
+  height: var(--space-xl);
+  border: var(--rule-width) solid currentColor;
+  border-radius: var(--radius-pill);
+}
+.rv-radio:has(:checked) .rv-radio__dot {
+  background-color: currentColor;
+}
+.rv-radio__text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.rv-radio__label {
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  font-size: var(--text-body-sm);
+  line-height: var(--text-body-sm--line-height);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.rv-radio__description {
+  font-family: var(--font-caption);
+  font-size: var(--text-micro);
+  line-height: var(--text-micro--line-height);
+  opacity: 0.8;
+}
