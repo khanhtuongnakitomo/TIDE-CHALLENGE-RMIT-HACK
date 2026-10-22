@@ -1,0 +1,139 @@
+{
+  "datasetVersion": "1.1.0",
+  "mode": "local-simulation",
+  "notice": "100% synthetic data for RMIT Hackathon Challenge 2 (ResearchVault). Contains no real student or health records.",
+  "study": {
+    "id": "study-wellbeing-01",
+    "code": "RMIT-WELLBEING-2026",
+    "title": "Student Wellbeing Interview Study",
+    "description": "A fictional study exploring how students find support during demanding study periods.",
+    "ethicsReference": "SYNTH-HREC-2026-014",
+    "governanceQuorum": {
+      "requiredApprovals": 2,
+      "eligibleApprovers": ["head-01", "steward-01", "ethics-01"],
+      "grantScope": {
+        "kind": "STUDY_CATEGORY",
+        "studyId": "study-wellbeing-01",
+        "dataCategory": "RESTRICTED",
+        "action": "READ"
+      }
+    }
+  },
+  "personas": [
+    {
+      "id": "participant-01",
+      "name": "Maya Chen",
+      "role": "Participant",
+      "audiences": ["PARTICIPANT"],
+      "capabilities": ["record:read:own"],
+      "studyMember": false,
+      "summary": "Contributed interview P-014. Can inspect her own coded response and identity record, but cannot see other participants' records or governance queues."
+    },
+    {
+      "id": "assistant-01",
+      "name": "Riley Park",
+      "role": "Research assistant",
+      "audiences": ["RESEARCHER"],
+      "capabilities": ["study:read", "request:create"],
+      "studyMember": true,
+      "summary": "Assigned to code interview themes. Starts with INTERNAL protocol access only; must request study-level RESTRICTED READ access and wait for 2-of-3 governance approval."
+    },
+    {
+      "id": "head-01",
+      "name": "Dr. Sam Taylor",
+      "role": "Head researcher",
+      "audiences": ["RESEARCHER", "GOVERNANCE"],
+      "capabilities": ["study:read", "governance:propose", "governance:approve"],
+      "studyMember": true,
+      "summary": "Leads the study. Can propose a scoped governance change and provide 1 of the 2 required approvals, but cannot unilaterally unlock restricted records."
+    },
+    {
+      "id": "steward-01",
+      "name": "Jordan Lee",
+      "role": "Data steward",
+      "audiences": ["GOVERNANCE"],
+      "capabilities": ["governance:approve"],
+      "studyMember": false,
+      "summary": "Independent data custodian. Reviews and approves scoped access requests without holding default study reading permissions."
+    },
+    {
+      "id": "ethics-01",
+      "name": "Alex Morgan",
+      "role": "Ethics representative",
+      "audiences": ["GOVERNANCE"],
+      "capabilities": ["governance:approve"],
+      "studyMember": false,
+      "summary": "Independent ethics reviewer. Can supply the second distinct approval to meet the 2-of-3 governance threshold."
+    }
+  ],
+  "records": [
+    {
+      "id": "record-protocol-001",
+      "studyId": "study-wellbeing-01",
+      "ownerId": "participant-01",
+      "category": "INTERNAL",
+      "safeLabel": "Interview guide · v1",
+      "summary": "Semi-structured interview script and participant support protocol",
+      "plaintext": "Use open questions, let participants skip any topic, and close by sharing support resources. Focus areas: (1) Transition to university workload, (2) Informal peer study networks, (3) Barriers to seeking formal academic or wellbeing support."
+    },
+    {
+      "id": "record-protocol-002",
+      "studyId": "study-wellbeing-01",
+      "ownerId": "head-01",
+      "category": "INTERNAL",
+      "safeLabel": "Thematic codebook · v2.1",
+      "summary": "Standardized coding tags and definitions for qualitative analysis",
+      "plaintext": "Synthetic codebook: Theme A [PEER_SUPPORT] — peer study groups and studio check-ins; Theme B [WORKLOAD_SPIKE] — week 8-11 assessment clustering; Theme C [HELP_SEEKING] — hesitation to contact formal services before deadlines."
+    },
+    {
+      "id": "record-coded-001",
+      "studyId": "study-wellbeing-01",
+      "ownerId": "participant-01",
+      "category": "RESTRICTED",
+      "safeLabel": "Coded interview response · P-014",
+      "summary": "De-identified transcript excerpt (Participant P-014 · Year 2 CS)",
+      "plaintext": "Synthetic response: A participant said weekly peer study sessions made it easier to ask for help. [Themes: PEER_SUPPORT, HELP_SEEKING | Cohort: Year 2 CS | Duration: 42m]"
+    },
+    {
+      "id": "record-coded-002",
+      "studyId": "study-wellbeing-01",
+      "ownerId": "participant-02",
+      "category": "RESTRICTED",
+      "safeLabel": "Coded interview response · P-019",
+      "summary": "De-identified transcript excerpt (Participant P-019 · Year 3 Design)",
+      "plaintext": "Synthetic response: Participant P-019 reported that overlapping week-9 project milestones disrupted sleep routines, but studio peer check-ins reduced feelings of isolation. [Themes: WORKLOAD_SPIKE, PEER_SUPPORT | Cohort: Year 3 Design | Duration: 38m]"
+    },
+    {
+      "id": "record-coded-003",
+      "studyId": "study-wellbeing-01",
+      "ownerId": "participant-03",
+      "category": "RESTRICTED",
+      "safeLabel": "Coded interview response · P-023",
+      "summary": "De-identified transcript excerpt (Participant P-023 · Postgrad IT)",
+      "plaintext": "Synthetic response: Participant P-023 noted uncertainty about whether academic extension requests were shared with course coordinators, delaying formal wellbeing outreach. [Themes: HELP_SEEKING | Cohort: Postgraduate IT | Duration: 45m]"
+    },
+    {
+      "id": "record-identity-001",
+      "studyId": "study-wellbeing-01",
+      "ownerId": "participant-01",
+      "category": "HIGHLY_RESTRICTED",
+      "safeLabel": "Participant identity mapping",
+      "summary": "Protected participant-to-code linkage (P-014)",
+      "plaintext": "Synthetic identity mapping: P-014 is Maya Chen. [Consent status: Active · Coded responses permitted for study-wellbeing-01 · Direct identifiers restricted to custodian tier]"
+    },
+    {
+      "id": "record-identity-002",
+      "studyId": "study-wellbeing-01",
+      "ownerId": "participant-02",
+      "category": "HIGHLY_RESTRICTED",
+      "safeLabel": "Cohort identity linkage · P-019 & P-023",
+      "summary": "Protected participant-to-code linkage (P-019, P-023)",
+      "plaintext": "Synthetic identity mapping: P-019 is Liam Nguyen; P-023 is Priya Nair. [Custodian-only re-identification ledger · Never exposed to general research assistants]"
+    }
+  ],
+  "presetRequestReasons": [
+    "I need to code the interview themes assigned to me.",
+    "Cross-checking peer-support and workload-spike frequency across coded transcripts P-014, P-019, and P-023.",
+    "Preparing de-identified thematic summary tables for the week-10 wellbeing interim report."
+  ]
+}
