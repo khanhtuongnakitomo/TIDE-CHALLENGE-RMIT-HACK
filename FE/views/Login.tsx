@@ -22,11 +22,11 @@ const DEMO_AUTH_ENABLED =
   vault.mode === "fixture" || import.meta.env.VITE_ENABLE_DEMO_AUTH === "true"
 
 const DEMO_PERSONAS: { id: PersonaId; label: string }[] = [
-  { id: "participant-01", label: "Participant (participant-01)" },
-  { id: "assistant-01", label: "Research Assistant (assistant-01)" },
-  { id: "head-01", label: "Head Researcher (head-01)" },
-  { id: "steward-01", label: "Data Steward (steward-01)" },
-  { id: "ethics-01", label: "Ethics Representative (ethics-01)" },
+  { id: "participant-01", label: "Maya Chen · Participant (participant-01)" },
+  { id: "assistant-01", label: "Riley Park · Research Assistant (assistant-01)" },
+  { id: "head-01", label: "Dr. Sam Taylor · Head Researcher (head-01)" },
+  { id: "steward-01", label: "Jordan Lee · Data Steward (steward-01)" },
+  { id: "ethics-01", label: "Alex Morgan · Ethics Representative (ethics-01)" },
 ]
 
 type Notice = "SESSION_REQUIRED" | "SESSION_EXPIRED" | "SIGNED_OUT"
@@ -136,15 +136,16 @@ export function Login() {
 
   return (
     <AuthCard
-      eyebrow="Fixture authentication"
+      eyebrow="Local simulation authentication"
       title="Sign In"
-      badge="Simulated"
+      badge={vault.isBackendConnected() ? "Backend Connected" : "Simulated"}
       lead={
         <p>
-          Demo sign-in for a synthetic-data prototype. TideCloak is simulated:
-          no server is contacted, and demo accounts are checked against salted
-          hashes kept in this browser.{" "}
-          <Link to="/documentation#auth" className={linkClass}>
+          Demo sign-in for the synthetic-data prototype. Seeded personas
+          authenticate against the local ResearchVault SQLite backend (
+          <Mono>POST /api/demo/login</Mono>); registered demo accounts are
+          checked against salted hashes kept in this browser.{" "}
+          <Link to="/documentation#what" className={linkClass}>
             What is simulated
           </Link>
         </p>
@@ -205,8 +206,8 @@ export function Login() {
             </span>
           </Eyebrow>
           <p className="type-caption text-ink-muted">
-            Simulated sessions for the seeded study-wellbeing-01 personas. No
-            credentials are checked.
+            Sessions for the seeded study-wellbeing-01 personas backed by SQLite
+            &amp; AES-256-GCM. No password required.
           </p>
           <ul className="grid grid-cols-1 gap-md">
             {DEMO_PERSONAS.map((p) => (

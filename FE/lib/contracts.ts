@@ -151,7 +151,7 @@ export interface RecordSummary {
 }
 
 export interface TranscriptTurn {
-  speaker: "INTERVIEWER" | "P-01"
+  speaker: string
   text: string
   codes?: string[]
 }

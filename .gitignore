@@ -1,10 +1,9 @@
 node_modules/
 .next/
 .next-test-*/
+FE/dist/
 .env
 .env.local
 .data/
 /data/
 *.tsbuildinfo
-agent.md
-mock.md

@@ -4,7 +4,7 @@ import { ArrowRight, EyeOff, KeyRound, ShieldAlert, Unlock } from "lucide-react"
 import type { AccessRequest, ApiError, RecordSummary } from "@/lib/contracts"
 import { useSession } from "@/app/session"
 import { vault } from "@/lib/fixtureAdapter"
-import { CODED_RECORD_ID, STUDY_ID } from "@/lib/fixtures"
+import { STUDY_ID } from "@/lib/fixtures"
 import { Gate } from "@/components/gates"
 import { RecordPlaintext } from "@/components/RecordContent"
 import {
@@ -52,7 +52,7 @@ function RecordCard({
   const [error, setError] = useState<ApiError | null>(null)
   const envelope = decrypted[record.id]
   const isCodedForRequester =
-    record.id === CODED_RECORD_ID && user?.role === "RESEARCH_ASSISTANT"
+    record.category === "RESTRICTED" && user?.role === "RESEARCH_ASSISTANT"
   const headingId = `rec-${record.id}`
 
   const attempt = async () => {

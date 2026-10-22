@@ -4,44 +4,38 @@
 
 ## Project overview
 
-_ResearchVault is a study-scoped research participation vault where sensitive participant contributions are compartmentalised by category and broadening team access requires independent quorum approval rather than a single administrator._
-
-Built with [TideCloak](https://tide.org/tidecloak?utm_source=github&utm_medium=readme&utm_campaign=unlocked).
+ResearchVault is a study-scoped research participation vault where sensitive participant contributions are compartmentalised by clearance tier and broadening team access requires a 2-of-3 governance quorum rather than a single administrator.
 
 ### 1. Vision & originality
 
-ResearchVault connects a **participant workspace** and a **research-team workspace** around compartmentalised data categories (`INTERNAL`, `RESTRICTED`, `HIGHLY_RESTRICTED`). Instead of treating a study folder as a single permission boundary, protocols, coded interview responses, and participant identity mappings are separated and governed independently.
+ResearchVault unifies a **participant portal** and a **research-team workspace** around compartmentalised data tiers (`INTERNAL`, `RESTRICTED`, `HIGHLY_RESTRICTED`). Rather than treating a study folder as one all-or-nothing permission boundary, protocols, coded interview transcripts, and direct identity mappings are encrypted and governed independently.
 
 ### 2. Trust constraint insight
 
-Sensitive qualitative research today forces an uncomfortable trade-off: giving assistants broad shared-drive access risks exposing participant identities, while concentrating gatekeeping in one head researcher or IT admin creates a single point of compromise or unilateral override. Removing unilateral administrative authority makes least-privilege research collaboration practical.
+Qualitative research teams face a painful trade-off: shared drives over-expose participant identities to every assistant, while centralising control in one lead researcher or IT admin creates a single point of compromise or unilateral override. Removing unilateral administrative authority makes least-privilege research collaboration safe and auditable.
 
 ### 3. Value & impact
 
-In a university **Student Wellbeing Interview Study** (`study-wellbeing-01`), participant **Maya Chen** can view her own contribution (`P-014`) while knowing her identity mapping stays isolated. Research assistant **Riley Park** can immediately read study protocols and request access to coded transcripts (`P-014`, `P-019`, `P-023`) for thematic coding—without ever unlocking direct participant identifiers.
+In a university **Student Wellbeing Study** (`study-wellbeing-01`), participant **Maya Chen** can inspect her own contribution (`P-014`) knowing her identity mapping stays isolated. Research assistant **Riley Park** can immediately read study protocols and request scoped access to coded transcripts (`P-014`, `P-019`, `P-023`) for thematic coding—without ever unlocking direct participant identifiers.
 
 ### 4. Why TideCloak matters
 
-TideCloak enables sender-constrained authentication (**RFC 9449 DPoP**), **Quorum-Enforced Authority (IGA)** so one administrator cannot alone commit a sensitive permission grant, and **`RelationshipAttestation:1`** policy-bound encryption.
-
-> **Current prototype boundary:** Live JWT + DPoP verification (`GET /api/me`), public adapter filtering, `RelationshipAttestation:1` browser helpers, and a local `tideorg/tidecloak-dev:0.14.41` container are implemented. Because upstream Midgard `FinalizeWallet` returned HTTP `503`/`500` during local realm license bootstrap, live payload/governance routes fail closed (`503`) and the default runnable demo operates as an explicitly labelled **local simulation** (SQLite + server-held AES-256-GCM demo key).
+Planned with **Tide's MCP (`Raziel`)**, ResearchVault integrates TideCloak across four boundaries: **RFC 9449 DPoP** sender-constrained sessions (`src/lib/auth/`), `resource_access` client role mapping, **2-of-3 Quorum-Enforced Authority (IGA)** so no single admin can self-approve a `RESTRICTED` grant, and **`RelationshipAttestation:1`** policy-bound encryption (`src/lib/tide/`). While TideCloak's network licensing is under load, sign-in, roles, quorum approvals, and AES-256-GCM decryption are simulated end-to-end.
 
 ### 5. Prototype & storytelling
 
-Judges can experience a complete **6-step interactive workflow** across **5 personas** and **7 synthetic records**:
+Judges can run a **6-step interactive flow** across **5 personas** and **7 encrypted records**:
 
-1. **Participant isolation:** `participant-01` reads her own record (`P-014`); other participants' records (`P-019`, `P-023`) remain hidden.
-2. **Access boundary:** `assistant-01` reads `INTERNAL` guides, is denied `RESTRICTED` coded responses (`403 MISSING_SCOPE`), and submits a scoped study-category `READ` request.
-3. **Single-admin insufficiency:** `head-01` proposes the change and approves once (`1/2`); the request stays `PENDING_GOVERNANCE` and retries still fail.
-4. **Independent quorum:** `steward-01` or `ethics-01` supplies the second distinct approval (`2/2`), moving the grant to `COMMITTED`.
-5. **Scoped unlock:** `assistant-01` retries and reads all three `RESTRICTED` coded responses (`P-014`, `P-019`, `P-023`), transitioning the grant to `ACTIVE`.
-6. **Continued compartmentalisation:** `HIGHLY_RESTRICTED` identity mappings remain locked (`403 MISSING_SCOPE`).
+- **Maya (`participant-01`)** decrypts her own record (`P-014`); others stay hidden.
+- **Riley (`assistant-01`)** reads `INTERNAL` guides, hits `403 MISSING_SCOPE` on `RESTRICTED` transcripts, and requests access.
+- **Dr. Taylor (`head-01`)** proposes and signs (`1/2`)—access remains locked.
+- **Jordan (`steward-01`)** signs (`2/2`), committing the grant; Riley refreshes authorization to decrypt `P-014`, `P-019`, and `P-023`, while `HIGHLY_RESTRICTED` identity records stay locked.
 
 ---
 
 ## Setup
 
-No cloud deployment is required. Everything runs locally on loopback (`http://127.0.0.1:3100`).
+No cloud deployment is required. Everything runs locally on loopback (`http://127.0.0.1:5173` for the Caldera Frontend UI and `http://127.0.0.1:3100` for the Next.js + SQLite Backend API).
 
 ### Prerequisites
 
@@ -53,29 +47,34 @@ No cloud deployment is required. Everything runs locally on loopback (`http://12
 From this folder in PowerShell or bash:
 
 ```powershell
-pnpm install --frozen-lockfile
+pnpm install
 Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-Open **<http://127.0.0.1:3100>** in your browser. No passwords are needed in `local-simulation` mode.
+`pnpm dev` automatically clears stale listeners on ports `3100`/`5173` and starts both servers concurrently:
+
+- **Frontend (Caldera UI):** **<http://127.0.0.1:5173>** (Vite + React Router 7 + Tailwind v4, proxying `/api/*` to the backend)
+- **Backend API & Classic Workspace:** **<http://127.0.0.1:3100>** (Next.js 16 + SQLite + AES-256-GCM)
+
+No passwords are needed for the 5 seeded study personas in `local-simulation` mode.
 
 ### 2. How to test the user workflow
 
-#### Option A — Interactive Browser Walkthrough (Recommended for Judges)
+#### Option A — Interactive Browser Walkthrough on Caldera Frontend (`http://127.0.0.1:5173`)
 
-Once <http://127.0.0.1:3100> is open, use the **Interactive User Test Workflow** strip at the top of the workspace (or the quick persona switcher in the header) to step through the 6 stages:
+Once **<http://127.0.0.1:5173>** is open, use either **`/login`** (Quick Demo Authentication) or the **Demo controls → Quick Persona Switcher** in the top banner to step through the 6 stages:
 
-| Step | Persona to select | Action in UI | Expected result |
-|---|---|---|---|
-| **01** | `participant-01` (Maya Chen) | Click **View** on `record-coded-001` (`P-014`) and `record-identity-001` | Reads own records; `P-019` and `P-023` are not visible |
-| **02** | `assistant-01` (Riley Park) | Click **Try read** on `record-coded-001` (blocked), pick a justification, and click **Request access** | `403 MISSING_SCOPE` banner; request created in `REQUESTED` state |
-| **03** | `head-01` (Dr. Sam Taylor) | Open **Governance review** tab → click **Propose simulated change** → click **Approve as head** | Moves to `PENDING_GOVERNANCE` (`1 of 2` approvals); access stays locked |
-| **04** | `steward-01` (Jordan Lee) or `ethics-01` (Alex Morgan) | In **Governance review**, click **Approve as steward / ethics representative** | Reaches `2/2` quorum; state becomes `COMMITTED` |
-| **05** | `assistant-01` (Riley Park) | Click **View** on `record-coded-001`, `record-coded-002`, and `record-coded-003` | All 3 `RESTRICTED` coded responses open; state becomes `ACTIVE` |
-| **06** | `assistant-01` (Riley Park) | Click **Try read** on `record-identity-001` or `record-identity-002` (`HIGHLY_RESTRICTED`) | Still denied (`403 MISSING_SCOPE`); identifiers stay protected |
+| Step | Persona to select | Route | Action in UI | Expected result |
+|---|---|---|---|---|
+| **01** | `participant-01` (Maya Chen) | `/user` | Click **Decrypt my record** on `record-coded-001` (`P-014`) and `record-identity-001` | Reads own records via `GET /api/records/:id`; `P-019` and `P-023` remain hidden |
+| **02** | `assistant-01` (Riley Park) | `/researcher` | Decrypt `record-protocol-001` (`INTERNAL`), click **Attempt decrypt** on `record-coded-001` (`403 MISSING_SCOPE`), then click **Request access** and submit a reason (`>= 20` chars) | Request created via `POST /api/access-requests` in `REQUESTED` state |
+| **03** | `head-01` (Dr. Sam Taylor) | `/governance` | In **Governed change**, click **Propose governed change** | Calls `/propose` + `/approve` (`1 of 2` approvals); status moves to `PENDING_GOVERNANCE`; access stays locked |
+| **04** | `steward-01` (Jordan Lee) or `ethics-01` (Alex Morgan) | `/governance` | Click **Open Tide approval console** → click **Sign as steward-01** → close modal and click **Sync provider status** | Reaches `2/2` quorum in SQLite; state becomes `COMMITTED` |
+| **05** | `assistant-01` (Riley Park) | `/researcher` | Click **Refresh Authorization & Decrypt** on the committed banner, then click **Decrypt** on `record-coded-002` and `record-coded-003` | All 3 `RESTRICTED` coded responses (`P-014`, `P-019`, `P-023`) decrypt; state becomes `ACTIVE` |
+| **06** | `assistant-01` (Riley Park) | `/researcher` | Click **Attempt decrypt** on `record-identity-001` or `record-identity-002` (`HIGHLY_RESTRICTED`) | Denied (`403 MISSING_SCOPE`, compartmentalized); participant identities stay protected |
 
-Click **Reset demo** in the top navigation bar at any time to reset the SQLite workflow state without restarting the server.
+Use **Demo controls → Scenario → Start: access locked** at any time to reset the SQLite database (`POST /api/demo/reset`) and purge decrypted state. Open **`/documentation#tidecloak`** while signed in to inspect the live simulated TideCloak JWT claims (`iss`, `sub`, `azp`, `cnf.jkt`, `resource_access`, and `RelationshipAttestation:1`).
 
 #### Option B — Automated CLI Workflow & Verification Suite
 
@@ -85,13 +84,16 @@ Run the end-to-end 6-step user workflow verification and security boundary tests
 # Run the 6-step user workflow verification script (isolated temp SQLite DB)
 pnpm test:workflow
 
-# Run TypeScript checks
+# Run TypeScript checks across both backend and frontend
 pnpm typecheck
+
+# Build frontend production bundle
+pnpm build:fe
 
 # Run full HTTP workflow + live JWT/DPoP boundary & adapter unit tests
 pnpm test
 
-# Build production bundle and verify runtime mode isolation (local-simulation vs live)
+# Build Next.js production bundle and verify runtime mode isolation
 pnpm build
 pnpm smoke:production-mode
 ```

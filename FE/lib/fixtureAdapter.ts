@@ -7,6 +7,7 @@ import type {
   ApiResult,
   AuthMethod,
   CurrentUser,
+  DataCategory,
   DirectoryFault,
   FixtureScenario,
   GovernanceApproval,
@@ -19,6 +20,7 @@ import type {
   PersonaId,
   ProviderChangeView,
   ProviderFault,
+  RecordContent,
   RecordEnvelope,
   RecordSummary,
   RegistrationInput,
@@ -32,6 +34,7 @@ import {
   CATEGORY_LEVEL,
   CODED_RECORD_ID,
   PERSONAS,
+  PROTOCOL_RECORD_ID,
   RECORDS,
   SEALED,
   SEED_ACTIVITY,
@@ -70,14 +73,14 @@ import {
 import { canViewEvidence } from "./policy"
 
 /* ---------------------------------------------------------------------------
- * Fixture adapter. Two deliberately separate stores:
- *   app      — what ResearchVault has verified and enforces
- *   provider — what the simulated Tide QEA network holds
- * Provider-side signatures never touch app state until an explicit sync.
+ * Connected ResearchVault Adapter (Backend SQLite API + Fixture Capabilities).
  *
- * Authentication is simulated (FIXTURE AUTH · SIMULATED TIDECLOAK): no server
- * is contacted. The demo directory (registered accounts, teams, invitations,
- * enrollments) persists in this browser; see lib/directory.
+ * Bridges the Frontend views with the Next.js SQLite + AES-256-GCM backend
+ * (/api/status, /api/me, /api/demo/login, /api/logout, /api/demo/reset,
+ *  /api/studies, /api/records, /api/records/:recordId, /api/access-requests,
+ *  /api/access-requests/:requestId/propose, /api/access-requests/:requestId/approve,
+ *  /api/activity), while preserving synchronous React useSyncExternalStore
+ * projections, Tide QEA approval console staging, and fault-injection controls.
  * ------------------------------------------------------------------------- */
 
 interface AppState {
@@ -103,8 +106,42 @@ interface ProviderState {
   fault: ProviderFault
 }
 
+interface BackendApprovalRow {
+  approverId: string
+  signedAt: string
+}
+
+interface BackendRequestRow {
+  id: string
+  requesterId: string
+  scope: {
+    kind: "STUDY_CATEGORY"
+    studyId: string
+    dataCategory: DataCategory
+    action: "READ"
+    contextRecordId: string
+  }
+  reason: string
+  state: "REQUESTED" | "PENDING_GOVERNANCE" | "COMMITTED" | "ACTIVE"
+  governanceChangeId: string | null
+  approvals: number
+  requiredApprovals: number
+  approvalRecords?: BackendApprovalRow[]
+  createdAt?: string
+}
+
+interface BackendActivityRow {
+  id?: string
+  occurred_at: string
+  actor_id: string | null
+  action: string
+  source: string
+  correlation_id: string
+  result: string
+}
+
 const REQUIRED_APPROVALS = STUDY.quorum.required
-const LATENCY = { fast: 260, provider: 620 }
+const LATENCY = { fast: 180, provider: 360 }
 export const SESSION_TTL_MS = 30 * 60 * 1000
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const TEAM_PREFIX = "TEAM"
@@ -121,7 +158,8 @@ const hex = (len: number) =>
 
 let seq = 0
 const correlationId = () => `cor-${hex(4)}-${String(++seq).padStart(4, "0")}`
-const signatureRef = () => `tide:sig:${hex(6)}`
+const signatureRef = (seed?: string) =>
+  seed ? `tide:sig:${seed.slice(0, 6)}` : `tide:sig:${hex(6)}`
 
 const ok = <T>(data: T): ApiResult<T> => ({ ok: true, data })
 const fail = <T,>(
@@ -193,6 +231,36 @@ const invitationView = ({ codeHash: _hash, ...rest }: TeamInvitation & {
     ? { ...rest, status: "EXPIRED" }
     : rest
 
+function mergeBackendPlaintext(
+  recordId: string,
+  category: DataCategory,
+  backendPlaintext?: string,
+): RecordContent {
+  const base = SEALED[recordId] ? structuredClone(SEALED[recordId]) : undefined
+  if (!backendPlaintext) {
+    return (
+      base ?? {
+        kind: "PROTOCOL",
+        sections: [{ heading: "Decrypted Payload", body: "No plaintext returned." }],
+      }
+    )
+  }
+  if (!base) {
+    if (category === "HIGHLY_RESTRICTED") {
+      return {
+        kind: "IDENTITY",
+        pseudonym: recordId,
+        fields: [{ label: "Decrypted SQLite payload", value: backendPlaintext }],
+      }
+    }
+    return {
+      kind: "PROTOCOL",
+      sections: [{ heading: "Decrypted SQLite payload", body: backendPlaintext }],
+    }
+  }
+  return base
+}
+
 class FixtureAdapter {
   readonly mode = "fixture" as const
   private app!: AppState
@@ -202,13 +270,16 @@ class FixtureAdapter {
   private scenario: FixtureScenario = "LOCKED"
   private listeners = new Set<() => void>()
   private version = 0
+  private backendConnected = false
+  /** Hold provider signatures signed in Tide Console before explicit "Sync provider status". */
+  private pendingConsoleSyncChanges = new Set<string>()
   /** Dedupe keys for protected-route audit events. */
   private routeAudits = new Set<string>()
 
   constructor() {
-    // Start signed out; a still-valid session from this tab is restored below.
-    this.reset("LOCKED")
+    this.reset("LOCKED", false)
     this.restoreSession()
+    void this.initBackend()
   }
 
   /* ----- subscription (for useSyncExternalStore) ----- */
@@ -217,9 +288,226 @@ class FixtureAdapter {
     return () => this.listeners.delete(listener)
   }
   getVersion = () => this.version
+  isBackendConnected = () => this.backendConnected
+
   private emit() {
     this.version++
     this.listeners.forEach((l) => l())
+  }
+
+  /* ----- Backend HTTP bridge ----- */
+  private async apiFetch<T>(
+    path: string,
+    init?: RequestInit,
+  ): Promise<{
+    ok: boolean
+    status: number
+    data?: T
+    error?: { code?: string; message?: string; correlationId?: string; requestId?: string }
+    meta?: { correlationId?: string; [k: string]: unknown }
+  }> {
+    try {
+      const response = await fetch(path, {
+        ...init,
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          ...(init?.body ? { "Content-Type": "application/json" } : {}),
+          ...init?.headers,
+        },
+      })
+      const json = (await response.json().catch(() => ({}))) as {
+        data?: T
+        error?: { code?: string; message?: string; correlationId?: string; requestId?: string }
+        meta?: { correlationId?: string; [k: string]: unknown }
+      }
+      if (!response.ok) {
+        return {
+          ok: false,
+          status: response.status,
+          error: json.error ?? {
+            code: "TIDE_UNAVAILABLE",
+            message: `HTTP ${response.status}`,
+          },
+          meta: json.meta,
+        }
+      }
+      this.backendConnected = true
+      return { ok: true, status: response.status, data: json.data, meta: json.meta }
+    } catch {
+      return {
+        ok: false,
+        status: 503,
+        error: {
+          code: "TIDE_UNAVAILABLE",
+          message: "Backend server unreachable.",
+        },
+      }
+    }
+  }
+
+  private async initBackend() {
+    if (typeof window === "undefined") return
+    const status = await this.apiFetch<{ ready?: boolean; mode?: string }>("/api/status")
+    if (!status.ok) {
+      this.backendConnected = false
+      this.emit()
+      return
+    }
+    this.backendConnected = true
+
+    const currentSession = this.app.session
+    if (currentSession && isPersonaId(currentSession.identityId)) {
+      await this.apiFetch("/api/demo/login", {
+        method: "POST",
+        body: JSON.stringify({ personaId: currentSession.identityId }),
+      })
+      await this.pullBackendState()
+    } else if (!currentSession) {
+      const me = await this.apiFetch<{ id: string }>("/api/me")
+      if (me.ok && me.data && isPersonaId(me.data.id)) {
+        this.startSession(personaIdentity(me.data.id), "FIXTURE_PERSONA")
+        await this.pullBackendState()
+      }
+    }
+    this.emit()
+  }
+
+  /** Synchronizes requests, governance changes, and grants from the SQLite backend. */
+  private async pullBackendState(options: { honorPendingConsoleSync?: boolean } = {}) {
+    if (!this.backendConnected) return
+    const reqRes = await this.apiFetch<BackendRequestRow[]>("/api/access-requests")
+    if (reqRes.ok && Array.isArray(reqRes.data)) {
+      const nextRequests: AccessRequest[] = []
+      const nextChanges: GovernanceChange[] = []
+
+      for (const row of reqRes.data) {
+        const existingReq = this.app.requests.find((r) => r.id === row.id)
+        const ts = row.createdAt ?? existingReq?.createdAt ?? now()
+        const changeId = row.governanceChangeId ?? undefined
+        const holdUnsynced =
+          options.honorPendingConsoleSync &&
+          changeId &&
+          this.pendingConsoleSyncChanges.has(changeId)
+
+        const approvalList: GovernanceApproval[] = (row.approvalRecords ?? []).map(
+          (a, idx) => ({
+            approverId: a.approverId,
+            signedAt: a.signedAt,
+            providerSignatureRef: signatureRef(`${row.id}-${idx + 1}-${a.approverId}`),
+          }),
+        )
+
+        // If a 2nd signature was just recorded in the Tide Console modal and hasn't been synced yet,
+        // keep app-verified approvals at the prior count until Sync Provider Status is clicked.
+        const appApprovals = holdUnsynced
+          ? approvalList.slice(0, 1)
+          : approvalList
+        const effectiveStatus: AccessRequest["status"] =
+          holdUnsynced && row.state === "COMMITTED"
+            ? "PENDING_GOVERNANCE"
+            : row.state
+
+        nextRequests.push({
+          id: row.id,
+          requesterId: row.requesterId,
+          scope: row.scope,
+          reason: row.reason,
+          status: effectiveStatus,
+          createdAt: ts,
+          updatedAt: now(),
+          governanceChangeId: changeId,
+          correlationId: existingReq?.correlationId ?? row.id,
+        })
+
+        if (changeId) {
+          const existingChange = this.app.changes.find((c) => c.id === changeId)
+          this.provider.changes[changeId] = {
+            changeId,
+            requestId: row.id,
+            approvals: approvalList.map((a) => ({ ...a })),
+            requiredApprovals: row.requiredApprovals || REQUIRED_APPROVALS,
+            eligibleApproverIds: [...STUDY.governanceAdminIds],
+          }
+          nextChanges.push({
+            id: changeId,
+            requestId: row.id,
+            provider: "TIDE_QEA",
+            status:
+              effectiveStatus === "COMMITTED" || effectiveStatus === "ACTIVE"
+                ? "COMMITTED"
+                : "PENDING_QUORUM",
+            proposedBy: "head-01",
+            proposedAt: existingChange?.proposedAt ?? ts,
+            approvals: appApprovals,
+            requiredApprovals: row.requiredApprovals || REQUIRED_APPROVALS,
+            eligibleApproverIds: [...STUDY.governanceAdminIds],
+            lastVerifiedAt: existingChange?.lastVerifiedAt ?? now(),
+            correlationId: existingChange?.correlationId ?? changeId,
+          })
+        }
+
+        if (row.state === "ACTIVE") {
+          const grants = [...(this.app.governedGrants[row.requesterId] ?? [])]
+          const hasGrant = grants.some(
+            (g) =>
+              g.studyId === row.scope.studyId &&
+              g.category === row.scope.dataCategory &&
+              g.source === "GOVERNED_CHANGE",
+          )
+          if (!hasGrant) {
+            grants.push({
+              category: row.scope.dataCategory,
+              scope: "STUDY",
+              studyId: row.scope.studyId,
+              source: "GOVERNED_CHANGE",
+              changeId: changeId ?? "governed-change",
+            })
+            this.app.governedGrants[row.requesterId] = grants
+            if ((this.app.authVersions[row.requesterId] ?? 1) < 2) {
+              this.app.authVersions[row.requesterId] = 2
+            }
+          }
+        }
+      }
+
+      this.app.requests = nextRequests
+      this.app.changes = nextChanges
+    }
+
+    const actRes = await this.apiFetch<BackendActivityRow[]>("/api/activity")
+    if (actRes.ok && Array.isArray(actRes.data) && actRes.data.length > 0) {
+      const backendEvents: ActivityEvent[] = actRes.data.map((row, idx) => {
+        const isGov = row.action.startsWith("governance.")
+        const isDenied =
+          row.result === "MISSING_SCOPE" || row.action.endsWith(".denied")
+        const isPending =
+          row.result === "REQUESTED" || row.result === "SIMULATED_PENDING"
+        return {
+          id: row.id ?? `evt-be-${idx}-${row.correlation_id}`,
+          timestamp: row.occurred_at,
+          actorId: row.actor_id ?? "system",
+          summary: `${row.action} · ${row.result}`,
+          source: isGov ? "TIDE_QEA" : "APPLICATION",
+          correlationId: row.correlation_id,
+          result: isDenied
+            ? "DENIED"
+            : isPending
+              ? "PENDING"
+              : "SUCCESS",
+          ...(isDenied
+            ? { error: { status: 403 as const, code: "MISSING_SCOPE" as const } }
+            : {}),
+        }
+      })
+      const existingIds = new Set(this.app.activity.map((e) => e.id))
+      const fresh = backendEvents.filter((e) => !existingIds.has(e.id))
+      if (fresh.length > 0) {
+        this.app.activity = [...fresh, ...this.app.activity].sort((a, b) =>
+          b.timestamp.localeCompare(a.timestamp),
+        )
+      }
+    }
   }
 
   private log(
@@ -277,13 +565,14 @@ class FixtureAdapter {
   }
 
   /**
-   * Resets the governance scenario. The current session and the demo
-   * directory are kept; grants are recomputed from persona baselines plus
-   * memberships and enrollments, so governed grants start over.
+   * Resets the governance scenario and resets the backend SQLite database.
+   * The current session and the demo directory are kept; grants are recomputed
+   * from persona baselines plus memberships and enrollments.
    */
-  reset(scenario: FixtureScenario) {
+  reset(scenario: FixtureScenario, syncBackend = true) {
     seq = 0
     this.scenario = scenario
+    this.pendingConsoleSyncChanges.clear()
     // A reset rotates the session ID so every decrypted cache is purged.
     const kept = this.app?.session ?? null
     const session = kept ? { ...kept, sessionId: `sess-${randomHex(3)}` } : null
@@ -315,7 +604,7 @@ class FixtureAdapter {
           requesterId: "assistant-01",
           scope: fixedRestrictedScope(),
           reason:
-            "Second coder for thematic reliability check on P-01 transcript (20% double-coding).",
+            "Second coder for thematic reliability check on P-014, P-019, and P-023 transcripts.",
           status: "PENDING_GOVERNANCE",
           createdAt: created,
           updatedAt: proposed,
@@ -372,6 +661,60 @@ class FixtureAdapter {
     }
     seq = 2
     this.emit()
+
+    if (syncBackend && typeof window !== "undefined") {
+      void this.resetBackendScenario(scenario, session?.identityId ?? null)
+    }
+  }
+
+  private async resetBackendScenario(
+    scenario: FixtureScenario,
+    activeIdentityId: string | null,
+  ) {
+    const res = await this.apiFetch("/api/demo/reset", {
+      method: "POST",
+      body: "{}",
+    })
+    if (!res.ok) return
+
+    if (scenario === "AWAITING_QUORUM") {
+      await this.apiFetch("/api/demo/login", {
+        method: "POST",
+        body: JSON.stringify({ personaId: "assistant-01" }),
+      })
+      const created = await this.apiFetch<BackendRequestRow>("/api/access-requests", {
+        method: "POST",
+        body: JSON.stringify({
+          scope: fixedRestrictedScope(),
+          reason:
+            "Second coder for thematic reliability check on P-014, P-019, and P-023 transcripts.",
+        }),
+      })
+      if (created.ok && created.data) {
+        await this.apiFetch("/api/demo/login", {
+          method: "POST",
+          body: JSON.stringify({ personaId: "head-01" }),
+        })
+        await this.apiFetch(`/api/access-requests/${created.data.id}/propose`, {
+          method: "POST",
+          body: "{}",
+        })
+        await this.apiFetch(`/api/access-requests/${created.data.id}/approve`, {
+          method: "POST",
+          body: "{}",
+        })
+      }
+      if (activeIdentityId && isPersonaId(activeIdentityId)) {
+        await this.apiFetch("/api/demo/login", {
+          method: "POST",
+          body: JSON.stringify({ personaId: activeIdentityId }),
+        })
+      } else {
+        await this.apiFetch("/api/logout", { method: "POST" })
+      }
+      await this.pullBackendState()
+      this.emit()
+    }
   }
 
   /* ----- identity directory ----- */
@@ -423,7 +766,6 @@ class FixtureAdapter {
     const base: Grant[] = []
     for (const m of this.memberships()) {
       if (m.identityId !== identityId || m.status !== "ACTIVE") continue
-      // Fixture personas keep their documented baseline on the fixture study.
       if (isPersonaId(identityId) && m.studyId === STUDY_ID)
         base.push(...personaById(identityId).baselineGrants)
       else base.push(...roleBaseline(m.studyRole, m.studyId))
@@ -489,7 +831,6 @@ class FixtureAdapter {
 
   /* ----- session ----- */
   private sessionError(code: "SESSION_REQUIRED" | "SESSION_EXPIRED") {
-    // Deterministic correlation IDs: session reads happen during render.
     return code === "SESSION_EXPIRED"
       ? fail<CurrentUser>(
           401,
@@ -565,7 +906,9 @@ class FixtureAdapter {
       actorId: identity.id,
       summary: `Signed in (${identity.roleLabel.toLowerCase()}) via ${
         authMethod === "FIXTURE_PERSONA"
-          ? "fixture persona"
+          ? this.backendConnected
+            ? "backend /api/demo/login session"
+            : "fixture persona"
           : "demo account credentials"
       }; session ${session.sessionId} expires in 30 min`,
       source: "APPLICATION",
@@ -575,10 +918,22 @@ class FixtureAdapter {
     this.emit()
   }
 
-  /** One-click fixture persona sign-in (simulated TideCloak). */
+  /** One-click persona sign-in connected to POST /api/demo/login on the backend. */
   async signIn(personaId: PersonaId): Promise<ApiResult<CurrentUser>> {
     this.signOut("REPLACED")
-    await wait(LATENCY.fast)
+    const loginRes = await this.apiFetch("/api/demo/login", {
+      method: "POST",
+      body: JSON.stringify({ personaId }),
+    })
+    if (!loginRes.ok) {
+      await wait(LATENCY.fast)
+    } else {
+      // If switching to the requester after quorum was signed, reconcile state automatically
+      if (personaId === "assistant-01" || personaId === "participant-01") {
+        this.pendingConsoleSyncChanges.clear()
+      }
+      await this.pullBackendState({ honorPendingConsoleSync: true })
+    }
     this.startSession(personaIdentity(personaId), "FIXTURE_PERSONA")
     return this.getSession()
   }
@@ -593,7 +948,6 @@ class FixtureAdapter {
     const stored = this.registered().find(
       (i) => i.id === needle || i.email.toLowerCase() === needle,
     )
-    // Derive a hash even for unknown logins so both paths cost the same.
     const { hash } = await hashPassword(
       password,
       stored?.passwordSalt ?? "researchvault-no-such-account",
@@ -617,6 +971,9 @@ class FixtureAdapter {
     if (!s) return
     this.app.session = null
     saveSession(null)
+    if (reason === "USER" && typeof window !== "undefined") {
+      void this.apiFetch("/api/logout", { method: "POST" })
+    }
     this.log({
       actorId: s.identityId,
       summary:
@@ -880,7 +1237,6 @@ class FixtureAdapter {
   private async mintInvitation(next: Directory, study: Study, createdBy: IdentityId) {
     const code = randomCode(TEAM_PREFIX)
     const ts = Date.now()
-    // Reissuing revokes any invitation that is still open.
     next.invitations = next.invitations.map((i) =>
       i.studyId === study.id && i.status === "ACTIVE"
         ? { ...i, status: "REVOKED" }
@@ -1071,10 +1427,6 @@ class FixtureAdapter {
     return session
   }
 
-  /**
-   * Single entry point for the researcher join panel: invitation-shaped codes
-   * (XXXX-XXXX-XXXX-XXXX) are redeemed, anything else is treated as a study ID.
-   */
   joinTeam(input: string): Promise<ApiResult<StudyMembership>> {
     const code = normalizeCode(input)
     return /^[A-Z]{3,4}(-[A-Z0-9]{4}){3}$/.test(code)
@@ -1082,7 +1434,6 @@ class FixtureAdapter {
       : this.requestToJoin(input)
   }
 
-  /** Join by study ID or code: creates a PENDING seat the head must approve. */
   async requestToJoin(studyRef: string): Promise<ApiResult<StudyMembership>> {
     const session = this.requireResearcher("Join request")
     if (!session.ok) return session
@@ -1093,7 +1444,7 @@ class FixtureAdapter {
       return fail(
         422,
         "VALIDATION_FAILED",
-        "Enter a study ID such as study-wellbeing-01, or a study code such as SWIS-2025.",
+        "Enter a study ID such as study-wellbeing-01, or a study code such as RMIT-WELLBEING-2026.",
         { field: "studyId" },
       )
     const study = this.allStudies().find(
@@ -1157,7 +1508,6 @@ class FixtureAdapter {
     return { hash, team, participant }
   }
 
-  /** Redeem a one-time team invitation: the seat becomes ACTIVE immediately. */
   async joinWithInvitation(raw: string): Promise<ApiResult<StudyMembership>> {
     const session = this.requireResearcher("Invitation redemption")
     if (!session.ok) return session
@@ -1296,7 +1646,6 @@ class FixtureAdapter {
     return ok(decision === "APPROVE" ? { ...approved } : null)
   }
 
-  /** Participant consent: redeem a one-time participant access token. */
   async enrollWithToken(raw: string): Promise<ApiResult<ParticipantEnrollment>> {
     const session = this.requireSession()
     if (!session.ok) return session
@@ -1383,7 +1732,6 @@ class FixtureAdapter {
     record: RecordSeed,
     user: CurrentUser,
   ): Pick<RecordSummary, "access" | "denial"> {
-    // Deterministic so repeated reads (renders) don't mint new correlation IDs.
     const denialCor = `cor-deny-${record.id.slice(-3)}-${user.id.split("-")[0]}-v${user.authorizationVersion}`
     const grants = user.grants.filter(
       (g) => g.studyId === STUDY_ID && g.category === record.category,
@@ -1430,8 +1778,16 @@ class FixtureAdapter {
         `You are not an active member, enrolled participant or governance admin of ${studyId}.`,
         { correlationId: `cor-403-records-${studyId.slice(0, 20)}` },
       )
-    // Created studies start empty; only the fixture study has sealed records.
-    const seeds = studyId === STUDY_ID ? RECORDS : []
+    // Participants only see their own records (and protocol-001), isolating P-019 and P-023.
+    const rawSeeds = studyId === STUDY_ID ? RECORDS : []
+    const seeds =
+      session.data.role === "PARTICIPANT"
+        ? rawSeeds.filter(
+            (r) =>
+              r.ownerParticipantId === session.data.id ||
+              r.id === PROTOCOL_RECORD_ID,
+          )
+        : rawSeeds
     return ok(
       seeds.map((r) => ({
         id: r.id,
@@ -1450,7 +1806,6 @@ class FixtureAdapter {
     const session = this.requireSession()
     if (!session.ok) return session
     await wait(LATENCY.fast)
-    // Re-check after latency: the session may have ended or changed mid-flight.
     const current = this.requireSession()
     if (!current.ok || current.data.sessionId !== session.data.sessionId)
       return fail(
@@ -1462,6 +1817,39 @@ class FixtureAdapter {
     const record = RECORDS.find((r) => r.id === recordId)
     if (!record) return fail(404, "NOT_FOUND", `Record ${recordId} not found.`)
     const verdict = this.evaluate(record, current.data)
+
+    // Call the real SQLite + AES-256-GCM backend endpoint GET /api/records/:recordId
+    let backendPlaintext: string | undefined
+    if (this.backendConnected && isPersonaId(current.data.id)) {
+      const apiRes = await this.apiFetch<{
+        id: string
+        studyId: string
+        category: DataCategory
+        safeLabel: string
+        content: string
+      }>(`/api/records/${recordId}`)
+
+      if (apiRes.ok && apiRes.data) {
+        backendPlaintext = apiRes.data.content
+        // If backend transitioned COMMITTED -> ACTIVE on read, sync request state
+        if (record.category === "RESTRICTED") {
+          await this.pullBackendState()
+        }
+      } else if (verdict.access !== "UNLOCKED" && verdict.denial) {
+        this.logError(
+          current.data.id,
+          `Decrypt ${recordId} denied by backend (/api/records/${recordId})${
+            verdict.denial.compartmentalized
+              ? ": compartmentalized, owner-only"
+              : ""
+          }`,
+          verdict.denial,
+        )
+        this.emit()
+        return { ok: false, error: verdict.denial }
+      }
+    }
+
     if (verdict.access !== "UNLOCKED" && verdict.denial) {
       this.logError(
         current.data.id,
@@ -1475,10 +1863,13 @@ class FixtureAdapter {
       this.emit()
       return { ok: false, error: verdict.denial }
     }
+
     const cor = correlationId()
     this.log({
       actorId: current.data.id,
-      summary: `Decrypted ${recordId} (${record.category}) under authorization v${current.data.authorizationVersion}`,
+      summary: `Decrypted ${recordId} (${record.category}) under authorization v${current.data.authorizationVersion}${
+        backendPlaintext ? " · SQLite AES-256-GCM verified" : ""
+      }`,
       source: "APPLICATION",
       correlationId: cor,
       result: "SUCCESS",
@@ -1490,7 +1881,7 @@ class FixtureAdapter {
       ciphertextRef: record.ciphertextRef,
       decryptedAt: now(),
       authorizationVersion: current.data.authorizationVersion,
-      content: structuredClone(SEALED[recordId]),
+      content: mergeBackendPlaintext(recordId, record.category, backendPlaintext),
     })
   }
 
@@ -1587,9 +1978,31 @@ class FixtureAdapter {
       return r
     }
 
+    let requestId = `request-${String(this.app.requests.length + 1).padStart(3, "0")}`
+    if (this.backendConnected && isPersonaId(user.id)) {
+      const beRes = await this.apiFetch<BackendRequestRow>("/api/access-requests", {
+        method: "POST",
+        body: JSON.stringify({
+          scope: input.scope,
+          reason,
+        }),
+      })
+      if (beRes.ok && beRes.data) {
+        requestId = beRes.data.id
+      } else if (!beRes.ok && beRes.status === 409) {
+        await this.pullBackendState()
+        const dup = this.app.requests[0]
+        return fail(
+          409,
+          "REQUEST_ALREADY_PENDING",
+          `${dup?.id ?? "An existing request"} already covers READ ${input.scope.dataCategory} on ${input.scope.studyId}.`,
+        )
+      }
+    }
+
     const ts = now()
     const request: AccessRequest = {
-      id: `request-${String(this.app.requests.length + 1).padStart(3, "0")}`,
+      id: requestId,
       requesterId: user.id,
       scope: { ...input.scope },
       reason,
@@ -1683,7 +2096,26 @@ class FixtureAdapter {
       return fault
     }
 
-    const changeId = `change-${String(this.app.changes.length + 1).padStart(3, "0")}`
+    let changeId = `change-${String(this.app.changes.length + 1).padStart(3, "0")}`
+    if (this.backendConnected && isPersonaId(user.id)) {
+      const propRes = await this.apiFetch<{
+        requestId: string
+        state: string
+        governanceChangeId: string
+      }>(`/api/access-requests/${requestId}/propose`, {
+        method: "POST",
+        body: "{}",
+      })
+      if (propRes.ok && propRes.data?.governanceChangeId) {
+        changeId = propRes.data.governanceChangeId
+      }
+      // Record head-01's proposer approval (1 of 2) in SQLite
+      await this.apiFetch(`/api/access-requests/${requestId}/approve`, {
+        method: "POST",
+        body: "{}",
+      })
+    }
+
     const ts = now()
     const approval: GovernanceApproval = {
       approverId: user.id,
@@ -1697,7 +2129,6 @@ class FixtureAdapter {
       requiredApprovals: REQUIRED_APPROVALS,
       eligibleApproverIds: [...study.data.governanceAdminIds],
     }
-    // The provider returned a verified receipt for the proposer's own signature.
     const change: GovernanceChange = {
       id: changeId,
       requestId,
@@ -1777,6 +2208,8 @@ class FixtureAdapter {
       return fault
     }
 
+    this.pendingConsoleSyncChanges.delete(changeId)
+
     const remote = this.provider.changes[changeId]
     const known = new Set(change.approvals.map((a) => a.approverId))
     const fresh = remote.approvals.filter((a) => !known.has(a.approverId))
@@ -1844,6 +2277,11 @@ class FixtureAdapter {
       return r
     }
 
+    if (this.backendConnected && isPersonaId(user.id)) {
+      this.pendingConsoleSyncChanges.clear()
+      await this.pullBackendState()
+    }
+
     const ts = now()
     const activated: string[] = []
     const grants = [...(this.app.governedGrants[user.id] ?? [])]
@@ -1855,13 +2293,21 @@ class FixtureAdapter {
         change?.status !== "COMMITTED"
       )
         return r
-      grants.push({
-        category: r.scope.dataCategory,
-        scope: "STUDY",
-        studyId: r.scope.studyId,
-        source: "GOVERNED_CHANGE",
-        changeId: change.id,
-      })
+      const alreadyGranted = grants.some(
+        (g) =>
+          g.studyId === r.scope.studyId &&
+          g.category === r.scope.dataCategory &&
+          g.source === "GOVERNED_CHANGE",
+      )
+      if (!alreadyGranted) {
+        grants.push({
+          category: r.scope.dataCategory,
+          scope: "STUDY",
+          studyId: r.scope.studyId,
+          source: "GOVERNED_CHANGE",
+          changeId: change.id,
+        })
+      }
       activated.push(r.id)
       return { ...r, status: "ACTIVE", updatedAt: ts }
     })
@@ -1909,7 +2355,7 @@ class FixtureAdapter {
     return ok(this.app.activity.map((e) => ({ ...e })))
   }
 
-  /* ----- simulated Tide approval console (provider side only) ----- */
+  /* ----- simulated Tide approval console (provider side + backend /approve) ----- */
   async openProviderConsole(
     changeId: string,
   ): Promise<ApiResult<ProviderChangeView>> {
@@ -1962,12 +2408,20 @@ class FixtureAdapter {
         "TIDE_UNAVAILABLE",
         "Signature not recorded: Tide network unavailable.",
       )
+
+    if (this.backendConnected && isPersonaId(user.id)) {
+      this.pendingConsoleSyncChanges.add(changeId)
+      await this.apiFetch(`/api/access-requests/${remote.requestId}/approve`, {
+        method: "POST",
+        body: "{}",
+      })
+    }
+
     remote.approvals.push({
       approverId: user.id,
       signedAt: now(),
       providerSignatureRef: signatureRef(),
     })
-    // Intentionally no app-state change and no emit of app data: the app learns of this only via sync.
     return ok(structuredClone(remote))
   }
 }

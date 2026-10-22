@@ -12,16 +12,23 @@ import {
   FlaskConical,
   Menu,
   SlidersHorizontal,
+  UserCheck,
   X,
 } from "lucide-react"
 import { IconButton, SelectField, cn } from "./kit"
 import type {
   DirectoryFault,
   FixtureScenario,
+  PersonaId,
   ProviderFault,
 } from "@/lib/contracts"
 import { vault } from "@/lib/fixtureAdapter"
-import { ROLE_TITLE, navFor, type NavItem } from "@/lib/policy"
+import {
+  ROLE_DEFAULT_ROUTE,
+  ROLE_TITLE,
+  navFor,
+  type NavItem,
+} from "@/lib/policy"
 import { useSession } from "@/app/session"
 import { Button, ButtonLink, Emblem } from "./ui"
 
@@ -34,8 +41,8 @@ const PUBLIC_NAV: NavItem[][] = [
 ]
 
 const SCENARIOS = [
-  { value: "LOCKED", label: "Start: access locked" },
-  { value: "AWAITING_QUORUM", label: "change-001 awaiting quorum" },
+  { value: "LOCKED", label: "Start: access locked (reset SQLite)" },
+  { value: "AWAITING_QUORUM", label: "change-001 awaiting quorum (1/2)" },
 ]
 
 const FAULTS = [
@@ -52,14 +59,17 @@ const DIRECTORY_FAULTS = [
   { value: "PERSISTENCE_FAILED", label: "Inject 503 PERSISTENCE_FAILED" },
 ]
 
-/* ---------------------------------------------------------------------------
- * Fixture banner: states plainly that authentication is simulated, shows the
- * demo session, and holds fixture controls. There is no persona switching
- * here; changing identity means signing out and signing in.
- * ------------------------------------------------------------------------- */
+const QUICK_PERSONAS: { id: PersonaId; label: string }[] = [
+  { id: "participant-01", label: "01 · Maya Chen (participant-01)" },
+  { id: "assistant-01", label: "02 · Riley Park (assistant-01)" },
+  { id: "head-01", label: "03 · Dr. Sam Taylor (head-01)" },
+  { id: "steward-01", label: "04 · Jordan Lee (steward-01)" },
+  { id: "ethics-01", label: "05 · Alex Morgan (ethics-01)" },
+]
 
 function DemoControls() {
-  const { resetScenario } = useSession()
+  const { user, pending, signInPersona, resetScenario } = useSession()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const panelId = useId()
@@ -98,14 +108,43 @@ function DemoControls() {
           className="absolute right-0 z-40 mt-md flex w-(--container-xs) max-w-[calc(100vw_-_var(--space-2xl)_*_2)] flex-col gap-lg rounded-inset surface-elevated p-xl"
         >
           <p className="type-eyebrow text-ink-muted">
-            Fixture controls · no server contacted
+            {vault.isBackendConnected()
+              ? "Connected to Backend SQLite (/api)"
+              : "Fixture controls · local simulation"}
           </p>
+          <div className="flex flex-col gap-xs rule-dotted-b pb-lg">
+            <p className="type-caption text-ink-muted">
+              Quick Persona Switcher (6-step demo):
+            </p>
+            {QUICK_PERSONAS.map((p) => {
+              const active = user?.id === p.id
+              return (
+                <Button
+                  key={p.id}
+                  size="sm"
+                  variant={active ? "primary" : "surface"}
+                  icon={UserCheck}
+                  loading={pending === p.id}
+                  className="w-full justify-start"
+                  onClick={async () => {
+                    const res = await signInPersona(p.id)
+                    setOpen(false)
+                    if (res.ok) {
+                      navigate(ROLE_DEFAULT_ROUTE[res.data.role])
+                    }
+                  }}
+                >
+                  {p.label}
+                </Button>
+              )
+            })}
+          </div>
           <SelectField
             label="Scenario"
             options={SCENARIOS}
             value={vault.getScenario()}
             onChange={(v) => resetScenario(v as FixtureScenario)}
-            description="Resetting keeps your session but purges decrypted data."
+            description="Resetting resets SQLite state and purges decrypted data."
           />
           <SelectField
             label="Governance provider"
@@ -138,14 +177,26 @@ function DemoControls() {
 }
 
 function FixtureBanner() {
+  const { version } = useSession()
+  void version
+  const connected = vault.isBackendConnected()
   return (
     <div className="bg-inset text-ink rule-dotted-b">
       <div className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-x-lg gap-y-md px-xl py-md md:px-2xl">
         <p className="flex min-w-0 items-center gap-md type-body text-body-sm uppercase">
           <FlaskConical className="size-4 shrink-0 text-accent" aria-hidden />
           <span>
-            Fixture auth · simulated TideCloak
-            <span className="hidden md:inline"> · no server contacted</span>
+            {connected ? (
+              <>
+                Backend connected · SQLite + AES-256-GCM (/api)
+                <span className="hidden md:inline"> · Local simulation</span>
+              </>
+            ) : (
+              <>
+                Fixture auth · simulated TideCloak
+                <span className="hidden md:inline"> · local fallback</span>
+              </>
+            )}
           </span>
         </p>
         <DemoControls />
@@ -261,7 +312,6 @@ function SessionActions({ onDone }: { onDone?: () => void }) {
         </ButtonLink>
       </>
     )
-  // "Demo" because sign-in is simulated; never labelled "Verified".
   return (
     <>
       <p
@@ -273,27 +323,22 @@ function SessionActions({ onDone }: { onDone?: () => void }) {
           DEMO SESSION · {user.id} · {ROLE_TITLE[user.role]}
         </span>
       </p>
-    <Button
-      size="sm"
-      variant="outline"
-      iconEnd={ArrowUpRight}
-      onClick={() => {
-        onDone?.()
-        signOut()
-        navigate("/login", { replace: true, state: { notice: "SIGNED_OUT" } })
-      }}
-    >
-      Sign Out
-    </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        iconEnd={ArrowUpRight}
+        onClick={() => {
+          onDone?.()
+          signOut()
+          navigate("/login", { replace: true, state: { notice: "SIGNED_OUT" } })
+        }}
+      >
+        Sign Out
+      </Button>
     </>
   )
 }
 
-/**
- * Toggles data-floating on the header once the page scrolls past 40px.
- * Writes the DOM attribute directly inside rAF, so scrolling never
- * re-renders React and the attribute only changes when the state flips.
- */
 function useFloatingNav() {
   const ref = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -328,8 +373,6 @@ function Header() {
       ref={ref}
       className="rv-nav sticky top-xl z-40 mx-auto mt-2xl w-full max-w-page px-xl md:px-2xl"
     >
-      {/* Tablet: wordmark + actions on one row, the nav pill wraps below.
-          Desktop: one dark pill. Phone: nav moves behind the menu button. */}
       <div className="rv-nav__bar flex flex-wrap items-center justify-between gap-md rounded-card surface-elevated p-md pl-xl xl:flex-nowrap xl:rounded-pill">
         <Wordmark />
         <nav
@@ -375,6 +418,9 @@ function Header() {
 }
 
 function Footer() {
+  const { version } = useSession()
+  void version
+  const connected = vault.isBackendConnected()
   return (
     <footer className="mx-auto w-full max-w-page px-xl pb-3xl md:px-2xl">
       <div className="flex flex-col gap-2xl rounded-card surface-elevated p-2xl md:flex-row md:items-center md:justify-between md:p-card">
@@ -383,11 +429,14 @@ function Footer() {
         </p>
         <div className="flex flex-col gap-xs md:items-end md:text-right">
           <p className="type-body text-body-sm">
-            Caldera Edition · fixture adapter · synthetic data only
+            Caldera Edition ·{" "}
+            {connected ? "Backend SQLite + AES-256-GCM connected" : "fixture adapter"} ·
+            synthetic data only
           </p>
           <p className="type-body text-body-sm text-ink-muted">
-            Sign-in and governance are simulated in this browser. No TideCloak
-            or Tide QEA server is contacted.
+            {connected
+              ? "Connected to local Next.js API (/api/*) with SQLite persistence and AES-256-GCM payload encryption."
+              : "Sign-in and governance are simulated in this browser."}
           </p>
         </div>
       </div>
@@ -395,7 +444,6 @@ function Footer() {
   )
 }
 
-/** Scroll to in-page anchors such as /#security after navigation. */
 function useHashScroll() {
   const { pathname, hash } = useLocation()
   useEffect(() => {
@@ -422,7 +470,6 @@ export function AppShell() {
         id="main"
         className="mx-auto w-full max-w-page flex-1 px-xl py-3xl md:px-2xl"
       >
-        {/* Keyed by session: every view-local cache starts empty per session. */}
         <Outlet key={user?.sessionId ?? "signed-out"} />
       </main>
       <Footer />

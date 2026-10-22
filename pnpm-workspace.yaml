@@ -1,3 +1,6 @@
+packages:
+  - '.'
+  - 'FE'
 allowBuilds:
   '@tidecloak/js': true
   esbuild: true

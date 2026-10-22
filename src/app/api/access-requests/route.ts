@@ -25,12 +25,15 @@ type Row = {
   reason: string;
   state: string;
   governance_change_id: string | null;
+  created_at: string;
 };
 
 function mapRequest(row: Row) {
-  const approvals = db
-    .prepare("SELECT COUNT(*) AS count FROM approvals WHERE request_id = ?")
-    .get(row.id) as { count: number };
+  const approvalRows = db
+    .prepare(
+      "SELECT approver_id AS approverId, approved_at AS signedAt FROM approvals WHERE request_id = ? ORDER BY approved_at ASC",
+    )
+    .all(row.id) as { approverId: string; signedAt: string }[];
 
   return {
     id: row.id,
@@ -45,8 +48,10 @@ function mapRequest(row: Row) {
     reason: row.reason,
     state: row.state,
     governanceChangeId: row.governance_change_id,
-    approvals: approvals.count,
+    approvals: approvalRows.length,
     requiredApprovals: 2,
+    approvalRecords: approvalRows,
+    createdAt: row.created_at,
     source: "LOCAL_SIMULATION",
   };
 }
@@ -72,8 +77,13 @@ export async function GET(request: NextRequest) {
   }
 
   if (actor.id === "participant-01") {
+    const participantRows = db
+      .prepare(
+        "SELECT * FROM access_requests WHERE study_id = 'study-wellbeing-01' ORDER BY created_at DESC",
+      )
+      .all() as Row[];
     return Response.json({
-      data: [],
+      data: participantRows.map(mapRequest),
       meta: { mode: "local-simulation", source: "APPLICATION" },
     });
   }

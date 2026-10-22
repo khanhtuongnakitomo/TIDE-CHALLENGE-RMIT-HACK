@@ -41,7 +41,7 @@ export function sameOriginMutation(request: NextRequest): boolean {
     return (
       parsed.origin === origin &&
       parsed.protocol === "http:" &&
-      parsed.host === host
+      loopback(parsed.host)
     );
   } catch {
     return false;

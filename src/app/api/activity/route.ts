@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
 
   if (
     !hasCapability(actor, "governance:approve") &&
-    !hasCapability(actor, "governance:propose")
+    !hasCapability(actor, "governance:propose") &&
+    !hasCapability(actor, "study:read")
   ) {
     return errorResponse(
       "FORBIDDEN",
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
 
   const data = db
     .prepare(
-      "SELECT occurred_at, actor_id, action, source, correlation_id, result FROM activity ORDER BY occurred_at DESC LIMIT 100",
+      "SELECT id, occurred_at, actor_id, action, source, correlation_id, result FROM activity ORDER BY occurred_at DESC LIMIT 100",
     )
     .all();
 
