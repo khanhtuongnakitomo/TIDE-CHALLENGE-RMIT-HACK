@@ -1,0 +1,102 @@
+[
+ {
+  "name": "01_landing",
+  "url": "/",
+  "target": [
+   0.8035481770833334,
+   0.008888888888888889,
+   0.12422960069444444,
+   0.038663194444444444
+  ],
+  "caption": "Open Demo controls and pick a study persona"
+ },
+ {
+  "name": "02_researcher",
+  "url": "/researcher",
+  "target": [
+   0.6809098137749566,
+   0.9964788140190972,
+   0.11686019897460938,
+   0.038395250108506945
+  ],
+  "caption": "Riley, research assistant, tries a restricted record"
+ },
+ {
+  "name": "03_denied",
+  "url": "/researcher",
+  "target": [
+   0.7554253472222222,
+   0.06076388888888889,
+   0.12923177083333334,
+   0.038663194444444444
+  ],
+  "caption": "Denied with 403 MISSING_SCOPE, so she requests access"
+ },
+ {
+  "name": "04_request",
+  "url": "/researcher",
+  "target": [
+   0.5827907986111112,
+   0.7819618055555555,
+   0.11095920138888889,
+   0.038663194444444444
+  ],
+  "caption": "A scoped, reasoned request: RESTRICTED \u00b7 READ"
+ },
+ {
+  "name": "05_governance",
+  "url": "/governance",
+  "target": [
+   0.39142820570203996,
+   1.3331781684027777,
+   0.19282752143012152,
+   0.055555419921875
+  ],
+  "caption": "The head researcher proposes the governed change"
+ },
+ {
+  "name": "06_pending",
+  "url": "/governance",
+  "target": null,
+  "caption": "One approval: 1 of 2, still pending"
+ },
+ {
+  "name": "07_steward",
+  "url": "/governance",
+  "target": [
+   0.39142795138888886,
+   1.3718402777777778,
+   0.20308159722222222,
+   0.05555555555555555
+  ],
+  "caption": "The data steward opens the approval console"
+ },
+ {
+  "name": "08_sign",
+  "url": "/governance",
+  "target": [
+   0.5668836805555556,
+   0.7005381944444444,
+   0.12686631944444443,
+   0.038663194444444444
+  ],
+  "caption": "Independent co-signature"
+ },
+ {
+  "name": "09_committed",
+  "url": "/governance",
+  "target": [
+   0.6000651041666667,
+   0.5293923611111111,
+   0.16514756944444445,
+   0.05555555555555555
+  ],
+  "caption": "Quorum reached: 2 of 2, committed"
+ },
+ {
+  "name": "10_refresh",
+  "url": "/researcher",
+  "target": null,
+  "caption": "Riley refreshes her authorization"
+ }
+]

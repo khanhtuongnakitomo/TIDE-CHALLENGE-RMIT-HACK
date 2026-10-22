@@ -30,7 +30,7 @@ import {
   type NavItem,
 } from "@/lib/policy"
 import { useSession } from "@/app/session"
-import { Button, ButtonLink, Emblem } from "./ui"
+import { Button, Emblem } from "./ui"
 
 const PUBLIC_NAV: NavItem[][] = [
   [
@@ -91,7 +91,8 @@ function DemoControls() {
     <div ref={ref} className="relative shrink-0">
       <Button
         size="sm"
-        variant="surface"
+        variant="primary"
+        className="ring-2 ring-accent/40 ring-offset-2 ring-offset-inset"
         icon={SlidersHorizontal}
         iconEnd={ChevronDown}
         aria-expanded={open}
@@ -105,7 +106,7 @@ function DemoControls() {
           id={panelId}
           role="group"
           aria-label="Fixture controls"
-          className="absolute right-0 z-40 mt-md flex w-(--container-xs) max-w-[calc(100vw_-_var(--space-2xl)_*_2)] flex-col gap-lg rounded-inset surface-elevated p-xl"
+          className="absolute right-0 z-50 mt-md flex max-h-[calc(100dvh-var(--spacing-section))] w-(--container-xs) max-w-[calc(100vw_-_var(--space-2xl)_*_2)] flex-col gap-lg overflow-y-auto rounded-inset surface-elevated p-xl"
         >
           <p className="type-eyebrow text-ink-muted">
             {vault.isBackendConnected()
@@ -181,7 +182,7 @@ function FixtureBanner() {
   void version
   const connected = vault.isBackendConnected()
   return (
-    <div className="bg-inset text-ink rule-dotted-b">
+    <div className="relative z-50 bg-inset text-ink rule-dotted-b">
       <div className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-x-lg gap-y-md px-xl py-md md:px-2xl">
         <p className="flex min-w-0 items-center gap-md type-body text-body-sm uppercase">
           <FlaskConical className="size-4 shrink-0 text-accent" aria-hidden />
@@ -295,23 +296,7 @@ function NavItems({
 function SessionActions({ onDone }: { onDone?: () => void }) {
   const { user, signOut } = useSession()
   const navigate = useNavigate()
-  if (!user)
-    return (
-      <>
-        <ButtonLink to="/login" size="sm" variant="surface" onClick={onDone}>
-          Sign In
-        </ButtonLink>
-        <ButtonLink
-          to="/register"
-          size="sm"
-          variant="primary"
-          iconEnd={ArrowUpRight}
-          onClick={onDone}
-        >
-          Register Now
-        </ButtonLink>
-      </>
-    )
+  if (!user) return null
   return (
     <>
       <p
@@ -364,6 +349,7 @@ function useFloatingNav() {
 }
 
 function Header() {
+  const { user } = useSession()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { pathname } = useLocation()
   const ref = useFloatingNav()
@@ -408,9 +394,11 @@ function Header() {
           className="mt-md flex max-h-[calc(100dvh-var(--spacing-section))] flex-col gap-lg overflow-y-auto rounded-card surface-elevated p-lg md:hidden"
         >
           <NavItems vertical onNavigate={() => setMobileOpen(false)} />
-          <div className="flex flex-wrap gap-md rule-dotted-t px-xs pt-lg sm:hidden">
-            <SessionActions onDone={() => setMobileOpen(false)} />
-          </div>
+          {user && (
+            <div className="flex flex-wrap gap-md rule-dotted-t px-xs pt-lg sm:hidden">
+              <SessionActions onDone={() => setMobileOpen(false)} />
+            </div>
+          )}
         </nav>
       )}
     </header>

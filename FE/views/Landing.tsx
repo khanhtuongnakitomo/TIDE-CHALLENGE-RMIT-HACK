@@ -3,6 +3,7 @@ import { cn } from "@/components/kit"
 import type { ClearanceLevel } from "@/lib/contracts"
 import { useSession } from "@/app/session"
 import { ROLE_DEFAULT_ROUTE } from "@/lib/policy"
+import { vault } from "@/lib/fixtureAdapter"
 import { ScrollRevealCard } from "@/components/ScrollRevealCard"
 import {
   ButtonLink,
@@ -129,7 +130,8 @@ export function Landing() {
         className="scroll-mt-3xl grid items-center gap-2xl lg:grid-cols-12">
         <ScrollRevealCard className="flex flex-col items-start lg:col-span-7">
           <Tag tone="sulfur" className="mb-2xl">
-            SYNTHETIC DATA PROTOTYPE · FIXTURE AUTH
+            SYNTHETIC DATA PROTOTYPE ·{" "}
+            {vault.isBackendConnected() ? "LOCAL SIMULATION" : "FIXTURE AUTH"}
           </Tag>
           <RevealHeading
             text="RESEARCH TOGETHER. KEEP PARTICIPANT DATA UNDER CONTROLLED ACCESS."
@@ -189,9 +191,6 @@ export function Landing() {
           <div className="flex flex-wrap gap-lg">
             <ButtonLink to="/login" variant="surface" iconEnd={ArrowRight}>
               Sign in as a participant
-            </ButtonLink>
-            <ButtonLink to="/register" variant="outline" iconEnd={ArrowUpRight}>
-              Register
             </ButtonLink>
           </div>
         </Card>
